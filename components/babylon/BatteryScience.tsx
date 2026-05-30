@@ -34,7 +34,7 @@ export default function BatteryScience() {
     const hemi = new BABYLON.HemisphericLight('h', new BABYLON.Vector3(0, 1, 0), scene);
     hemi.intensity = 0.8;
     const glow = new BABYLON.GlowLayer('g', scene);
-    glow.intensity = 0.7;
+    glow.intensity = 0.4;
 
     // Electrodes.
     const makeElectrode = (x: number, color: BABYLON.Color3, label: string) => {
@@ -58,8 +58,8 @@ export default function BatteryScience() {
 
     // Lithium ions.
     const ionMat = new BABYLON.StandardMaterial('ion', scene);
-    ionMat.emissiveColor = new BABYLON.Color3(0.15, 0.9, 0.7);
-    ionMat.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.4);
+    ionMat.emissiveColor = new BABYLON.Color3(0.12, 0.5, 0.42);
+    ionMat.diffuseColor = new BABYLON.Color3(0.1, 0.4, 0.34);
 
     const ionCount = 34;
     const ions: { mesh: BABYLON.Mesh; phase: number; y: number; z: number; speed: number }[] = [];
@@ -80,7 +80,7 @@ export default function BatteryScience() {
     wire.rotation.x = Math.PI / 2;
     wire.scaling.y = 0.45;
     const wireMat = new BABYLON.StandardMaterial('wirem', scene);
-    wireMat.emissiveColor = new BABYLON.Color3(0.2, 0.6, 1);
+    wireMat.emissiveColor = new BABYLON.Color3(0.14, 0.38, 0.58);
     wireMat.disableLighting = true;
     wire.material = wireMat;
 

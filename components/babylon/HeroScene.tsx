@@ -75,7 +75,7 @@ export default function HeroScene() {
     rim.intensity = 0.7;
 
     const glow = new BABYLON.GlowLayer('glow', scene);
-    glow.intensity = 0.85;
+    glow.intensity = 0.45;
 
     // Reflective floor + neon rings.
     const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 60, height: 60 }, scene);
@@ -89,7 +89,7 @@ export default function HeroScene() {
     for (let i = 1; i <= 3; i++) {
       const ring = BABYLON.MeshBuilder.CreateTorus(`ring${i}`, { diameter: 6 + i * 4, thickness: 0.03, tessellation: 64 }, scene);
       const rm = new BABYLON.StandardMaterial(`ringMat${i}`, scene);
-      rm.emissiveColor = new BABYLON.Color3(0.05, 0.3, 0.25);
+      rm.emissiveColor = new BABYLON.Color3(0.04, 0.15, 0.13);
       rm.disableLighting = true;
       ring.material = rm;
       ring.position.y = 0.01;
@@ -120,7 +120,7 @@ export default function HeroScene() {
     wheelMat.metallic = 0.2;
     wheelMat.roughness = 0.85;
     const rimMat = new BABYLON.StandardMaterial('rimMat', scene);
-    rimMat.emissiveColor = new BABYLON.Color3(0.12, 0.45, 0.5);
+    rimMat.emissiveColor = new BABYLON.Color3(0.08, 0.24, 0.26);
     rimMat.disableLighting = true;
 
     const headMat = new BABYLON.StandardMaterial('headMat', scene);
@@ -128,7 +128,7 @@ export default function HeroScene() {
     const tailMat = new BABYLON.StandardMaterial('tailMat', scene);
     tailMat.emissiveColor = new BABYLON.Color3(0.25, 0.02, 0.05);
     const portMat = new BABYLON.StandardMaterial('portMat', scene);
-    portMat.emissiveColor = new BABYLON.Color3(0.1, 0.8, 0.6);
+    portMat.emissiveColor = new BABYLON.Color3(0.08, 0.4, 0.32);
 
     // Reflection probe so the body reflects the floor + rings.
     const probe = new BABYLON.ReflectionProbe('probe', 256, scene);
@@ -317,10 +317,10 @@ export default function HeroScene() {
       },
       startCharge: () => {
         particleSystem.start();
-        portRef.emissiveColor = new BABYLON.Color3(0.2, 1, 0.8);
+        portRef.emissiveColor = new BABYLON.Color3(0.15, 0.6, 0.5);
         setTimeout(() => {
           particleSystem.stop();
-          portRef.emissiveColor = new BABYLON.Color3(0.1, 0.8, 0.6);
+          portRef.emissiveColor = new BABYLON.Color3(0.08, 0.4, 0.32);
         }, 6000);
       },
       setType: (type) => buildCar(type),
