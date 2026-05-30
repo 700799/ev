@@ -1,10 +1,12 @@
-name: Build &amp; Deploy to GitHub Pages
+name: Build & Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - main
-      - claude/ev-ownership-nextjs-site-OZEN0
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
