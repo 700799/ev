@@ -5,16 +5,26 @@ import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// Optional Open Charge Map API key (NEXT_PUBLIC_OCM_KEY). Works key-less too,
+// just with stricter rate limits. Get a free key at openchargemap.org.
+const OCM_KEY = process.env.NEXT_PUBLIC_OCM_KEY;
+
+type Provider = 'ocm' | 'osm';
+
 interface Station {
-  id: number;
+  id: string;
   lat: number;
   lon: number;
   name: string;
   operator?: string;
-  socket?: string;
-  access?: string;
-  fee?: string;
   distanceMi: number;
+  powerKw?: number;
+  connectors?: string;
+  points?: number;
+  cost?: string; // pricing
+  status?: string; // availability/status text
+  operational?: boolean;
+  source: Provider;
 }
 
 const homeIcon = L.divIcon({
@@ -24,12 +34,20 @@ const homeIcon = L.divIcon({
   iconAnchor: [9, 9],
 });
 
-const stationIcon = L.divIcon({
-  className: '',
-  html: '<div style="background:#25e6a5;width:14px;height:14px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #04121a;box-shadow:0 0 8px #25e6a5"></div>',
-  iconSize: [16, 16],
-  iconAnchor: [8, 14],
-});
+const stationIcon = (color: string) =>
+  L.divIcon({
+    className: '',
+    html: `<div style="background:${color};width:14px;height:14px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #04121a;box-shadow:0 0 8px ${color}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 14],
+  });
+
+function statusColor(s: Station) {
+  if (s.source === 'osm') return '#25e6a5';
+  if (s.operational === false) return '#ff5c7a';
+  if (s.operational === true) return '#25e6a5';
+  return '#ffb547';
+}
 
 function Recenter({ center }: { center: [number, number] | null }) {
   const map = useMap();
@@ -49,12 +67,92 @@ function haversineMi(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// --- Open Charge Map: richest free source (operator, power, cost, status) ---
+async function fetchOCM(lat: number, lon: number, radiusMi: number, signal: AbortSignal): Promise<Station[]> {
+  const params = new URLSearchParams({
+    output: 'json',
+    countrycode: 'US',
+    latitude: String(lat),
+    longitude: String(lon),
+    distance: String(radiusMi),
+    distanceunit: 'Miles',
+    maxresults: '80',
+    compact: 'false',
+    verbose: 'false',
+  });
+  if (OCM_KEY) params.set('key', OCM_KEY);
+  const res = await fetch(`https://api.openchargemap.io/v3/poi/?${params.toString()}`, { signal });
+  if (!res.ok) throw new Error('OCM request failed');
+  const data = await res.json();
+  return (data || [])
+    .map((poi: any): Station | null => {
+      const ai = poi.AddressInfo;
+      if (!ai?.Latitude || !ai?.Longitude) return null;
+      const conns: any[] = poi.Connections || [];
+      const powerKw = conns.reduce((m, c) => Math.max(m, c.PowerKW || 0), 0) || undefined;
+      const connectors = Array.from(
+        new Set(conns.map((c) => c.ConnectionType?.Title).filter(Boolean)),
+      ).join(', ');
+      return {
+        id: `ocm-${poi.ID}`,
+        lat: ai.Latitude,
+        lon: ai.Longitude,
+        name: ai.Title || 'Charging station',
+        operator: poi.OperatorInfo?.Title && poi.OperatorInfo.Title !== '(Unknown Operator)' ? poi.OperatorInfo.Title : undefined,
+        distanceMi: ai.Distance ?? haversineMi([lat, lon], [ai.Latitude, ai.Longitude]),
+        powerKw,
+        connectors: connectors || undefined,
+        points: poi.NumberOfPoints || undefined,
+        cost: poi.UsageCost || undefined,
+        status: poi.StatusType?.Title,
+        operational: poi.StatusType?.IsOperational ?? undefined,
+        source: 'ocm',
+      };
+    })
+    .filter(Boolean)
+    .sort((a: Station, b: Station) => a.distanceMi - b.distanceMi);
+}
+
+// --- OpenStreetMap / Overpass fallback (no key, community data) ---
+async function fetchOverpass(lat: number, lon: number, radiusMi: number, signal: AbortSignal): Promise<Station[]> {
+  const meters = Math.round(radiusMi * 1609.34);
+  const q = `[out:json][timeout:25];(node["amenity"="charging_station"](around:${meters},${lat},${lon});way["amenity"="charging_station"](around:${meters},${lat},${lon}););out center 80;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    body: 'data=' + encodeURIComponent(q),
+    signal,
+  });
+  const op = await res.json();
+  return (op.elements || [])
+    .map((el: any): Station | null => {
+      const slat = el.lat ?? el.center?.lat;
+      const slon = el.lon ?? el.center?.lon;
+      if (slat == null || slon == null) return null;
+      const tags = el.tags || {};
+      return {
+        id: `osm-${el.id}`,
+        lat: slat,
+        lon: slon,
+        name: tags.name || tags.operator || 'Charging station',
+        operator: tags.operator,
+        distanceMi: haversineMi([lat, lon], [slat, slon]),
+        connectors: tags['socket:type2'] || tags['socket:tesla_supercharger'] ? 'Type 2 / Supercharger' : tags.socket,
+        cost: tags.fee === 'no' ? 'Free' : tags.fee === 'yes' ? 'Paid' : undefined,
+        source: 'osm',
+      };
+    })
+    .filter(Boolean)
+    .sort((a: Station, b: Station) => a.distanceMi - b.distanceMi);
+}
+
 export default function StationFinder() {
   const [zip, setZip] = useState('');
-  const [radius, setRadius] = useState(10); // miles
+  const [radius, setRadius] = useState(10);
+  const [provider, setProvider] = useState<Provider>('ocm');
   const [center, setCenter] = useState<[number, number] | null>(null);
-  const [place, setPlace] = useState<string>('');
+  const [place, setPlace] = useState('');
   const [stations, setStations] = useState<Station[]>([]);
+  const [activeSource, setActiveSource] = useState<Provider>('ocm');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -74,7 +172,6 @@ export default function StationFinder() {
     abortRef.current = ac;
 
     try {
-      // 1) Geocode the ZIP via OpenStreetMap Nominatim (free, no key).
       const geoRes = await fetch(
         `https://nominatim.openstreetmap.org/search?postalcode=${clean}&country=US&format=json&limit=1&addressdetails=1`,
         { signal: ac.signal, headers: { Accept: 'application/json' } },
@@ -87,46 +184,30 @@ export default function StationFinder() {
       }
       const lat = parseFloat(geo[0].lat);
       const lon = parseFloat(geo[0].lon);
-      const label = geo[0].display_name?.split(',').slice(0, 3).join(', ') || clean;
       setCenter([lat, lon]);
-      setPlace(label);
+      setPlace(geo[0].display_name?.split(',').slice(0, 3).join(', ') || clean);
 
-      // 2) Query charging stations via Overpass (OpenStreetMap data, free, no key).
-      const meters = Math.round(radius * 1609.34);
-      const q = `[out:json][timeout:25];(node["amenity"="charging_station"](around:${meters},${lat},${lon});way["amenity"="charging_station"](around:${meters},${lat},${lon}););out center 80;`;
-      const opRes = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(q),
-        signal: ac.signal,
-      });
-      const op = await opRes.json();
-      const results: Station[] = (op.elements || [])
-        .map((el: any) => {
-          const slat = el.lat ?? el.center?.lat;
-          const slon = el.lon ?? el.center?.lon;
-          if (slat == null || slon == null) return null;
-          const tags = el.tags || {};
-          return {
-            id: el.id,
-            lat: slat,
-            lon: slon,
-            name: tags.name || tags.operator || 'Charging station',
-            operator: tags.operator,
-            socket:
-              tags['socket:type2'] || tags['socket:tesla_supercharger']
-                ? 'Type 2 / Supercharger'
-                : tags.socket || undefined,
-            access: tags.access,
-            fee: tags.fee,
-            distanceMi: haversineMi([lat, lon], [slat, slon]),
-          } as Station;
-        })
-        .filter(Boolean)
-        .sort((a: Station, b: Station) => a.distanceMi - b.distanceMi);
+      let results: Station[] = [];
+      let used: Provider = provider;
+      if (provider === 'ocm') {
+        try {
+          results = await fetchOCM(lat, lon, radius, ac.signal);
+        } catch {
+          results = [];
+        }
+        // Auto-fallback to OSM if OCM is empty or rate-limited.
+        if (results.length === 0) {
+          results = await fetchOverpass(lat, lon, radius, ac.signal);
+          used = 'osm';
+        }
+      } else {
+        results = await fetchOverpass(lat, lon, radius, ac.signal);
+      }
 
+      setActiveSource(used);
       setStations(results);
       if (results.length === 0) {
-        setError('No charging stations found in OpenStreetMap for this area. Try a larger radius.');
+        setError('No charging stations found for this area. Try a larger radius or the other data source.');
       }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
@@ -142,18 +223,11 @@ export default function StationFinder() {
   return (
     <div>
       <form onSubmit={search} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="field" style={{ flex: '1 1 160px' }}>
+        <div className="field" style={{ flex: '1 1 150px' }}>
           <label htmlFor="zip">ZIP code</label>
-          <input
-            id="zip"
-            inputMode="numeric"
-            placeholder="e.g. 94583"
-            value={zip}
-            onChange={(e) => setZip(e.target.value)}
-            maxLength={5}
-          />
+          <input id="zip" inputMode="numeric" placeholder="e.g. 94583" value={zip} onChange={(e) => setZip(e.target.value)} maxLength={5} />
         </div>
-        <div className="field" style={{ flex: '0 1 150px' }}>
+        <div className="field" style={{ flex: '0 1 130px' }}>
           <label htmlFor="radius">Radius</label>
           <select id="radius" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
             <option value={5}>5 miles</option>
@@ -162,19 +236,24 @@ export default function StationFinder() {
             <option value={50}>50 miles</option>
           </select>
         </div>
+        <div className="field" style={{ flex: '0 1 200px' }}>
+          <label htmlFor="provider">Data source</label>
+          <select id="provider" value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
+            <option value="ocm">Open Charge Map (pricing + status)</option>
+            <option value="osm">OpenStreetMap (community)</option>
+          </select>
+        </div>
         <button className="btn primary" type="submit" disabled={loading} style={{ height: 44 }}>
           {loading ? <span className="spinner" /> : '🔌 Find stations'}
         </button>
       </form>
 
-      {error && (
-        <div className="note warn" style={{ marginTop: 14 }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="note warn" style={{ marginTop: 14 }}>{error}</div>}
       {place && !error && (
         <p className="muted small" style={{ marginTop: 10 }}>
-          Showing chargers near <strong>{place}</strong> — {stations.length} found within {radius} mi.
+          Showing chargers near <strong>{place}</strong> — {stations.length} found within {radius} mi via{' '}
+          <strong>{activeSource === 'ocm' ? 'Open Charge Map' : 'OpenStreetMap'}</strong>
+          {provider === 'ocm' && activeSource === 'osm' && ' (Open Charge Map returned none, fell back automatically)'}.
         </p>
       )}
 
@@ -188,20 +267,21 @@ export default function StationFinder() {
             <Recenter center={center} />
             {center && (
               <>
-                <Marker position={center} icon={homeIcon}>
-                  <Popup>Your ZIP area</Popup>
-                </Marker>
+                <Marker position={center} icon={homeIcon}><Popup>Your ZIP area</Popup></Marker>
                 <Circle center={center} radius={radius * 1609.34} pathOptions={{ color: '#3aa0ff', opacity: 0.4, fillOpacity: 0.05 }} />
               </>
             )}
             {stations.map((s) => (
-              <Marker key={s.id} position={[s.lat, s.lon]} icon={stationIcon}>
+              <Marker key={s.id} position={[s.lat, s.lon]} icon={stationIcon(statusColor(s))}>
                 <Popup>
                   <strong>{s.name}</strong>
                   <br />
-                  {s.operator && <>Operator: {s.operator}<br /></>}
+                  {s.operator && <>{s.operator}<br /></>}
                   {s.distanceMi.toFixed(1)} mi away
-                  {s.fee && <><br />Fee: {s.fee}</>}
+                  {s.powerKw && <><br />⚡ up to {s.powerKw} kW</>}
+                  {s.connectors && <><br />🔌 {s.connectors}</>}
+                  {s.cost && <><br />💲 {s.cost}</>}
+                  {s.status && <><br />📶 {s.status}</>}
                 </Popup>
               </Marker>
             ))}
@@ -209,22 +289,26 @@ export default function StationFinder() {
         </div>
 
         {stations.length > 0 && (
-          <div style={{ maxHeight: 420, overflowY: 'auto', display: 'grid', gap: 10, alignContent: 'start' }}>
+          <div style={{ maxHeight: 440, overflowY: 'auto', display: 'grid', gap: 10, alignContent: 'start' }}>
             {stations.slice(0, 40).map((s) => (
               <div key={s.id} className="card" style={{ padding: 12 }}>
-                <h3 style={{ fontSize: '0.98rem' }}>{s.name}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+                  <h3 style={{ fontSize: '0.98rem' }}>{s.name}</h3>
+                  {s.operational != null && (
+                    <span className="pill" style={{ color: s.operational ? 'var(--accent)' : 'var(--danger)', borderColor: 'currentColor' }}>
+                      {s.operational ? 'Operational' : 'Down'}
+                    </span>
+                  )}
+                </div>
                 <div className="article-meta">
                   <span>📍 {s.distanceMi.toFixed(1)} mi</span>
                   {s.operator && <span>🏢 {s.operator}</span>}
-                  {s.access && <span>🔓 {s.access}</span>}
-                  {s.fee && <span>💲 {s.fee}</span>}
+                  {s.powerKw && <span>⚡ {s.powerKw} kW</span>}
+                  {s.points && <span>🔢 {s.points} ports</span>}
+                  {s.connectors && <span>🔌 {s.connectors}</span>}
+                  <span>💲 {s.cost || 'Price varies'}</span>
                 </div>
-                <a
-                  className="small"
-                  href={`https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a className="small" href={`https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}`} target="_blank" rel="noopener noreferrer">
                   Open in map ↗
                 </a>
               </div>
@@ -232,9 +316,11 @@ export default function StationFinder() {
           </div>
         )}
       </div>
+
       <p className="muted small" style={{ marginTop: 10 }}>
-        Data from OpenStreetMap contributors via Nominatim & Overpass — free, community-maintained, and not exhaustive.
-        Always confirm availability in your charging app before heading out.
+        Pricing &amp; status from <a href="https://openchargemap.org" target="_blank" rel="noopener noreferrer">Open Charge Map</a>;
+        community locations from OpenStreetMap (Nominatim &amp; Overpass). Both are free and not exhaustive — always confirm
+        live availability in your charging app before heading out.
       </p>
     </div>
   );

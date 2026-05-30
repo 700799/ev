@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Article } from '@/data/articles';
+import { withBase } from '@/lib/site';
 
 interface Props {
   articles: Article[];
@@ -30,7 +31,11 @@ export default function ArticleList({ articles, pageSize = 5, ranked = false }: 
             {ranked && <div className="article-rank">#{rank}</div>}
             <div style={{ flex: 1 }}>
               <span className="pill">{a.category}</span>
-              <h3 style={{ margin: '8px 0 4px', fontSize: '1.08rem' }}>{a.title}</h3>
+              <h3 style={{ margin: '8px 0 4px', fontSize: '1.08rem' }}>
+                <a href={withBase(`/articles/${a.id}/`)} style={{ color: 'inherit' }}>
+                  {a.title}
+                </a>
+              </h3>
               <p className="muted" style={{ margin: 0, fontSize: '0.94rem' }}>{a.excerpt}</p>
               <div className="article-meta">
                 <span>🗓️ {fmtDate(a.date)}</span>

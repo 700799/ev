@@ -379,7 +379,9 @@ export default function Home() {
           {freshArticles.slice(0, 9).map((a) => (
             <article className="card" key={a.id}>
               <span className="pill">{a.category}</span>
-              <h3 style={{ margin: '8px 0 6px', fontSize: '1.02rem' }}>{a.title}</h3>
+              <h3 style={{ margin: '8px 0 6px', fontSize: '1.02rem' }}>
+                <a href={withBase(`/articles/${a.id}/`)} style={{ color: 'inherit' }}>{a.title}</a>
+              </h3>
               <p>{a.excerpt}</p>
               <div className="article-meta">
                 <span>🗓️ {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
