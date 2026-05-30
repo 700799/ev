@@ -36,6 +36,10 @@ jobs:
       - name: Resolve base path
         id: pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-enable GitHub Pages (build type: GitHub Actions) on first run
+          # so the workflow doesn't 404 when Pages hasn't been turned on yet.
+          enablement: true
 
       - name: Build (static export)
         env:
