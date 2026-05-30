@@ -1,0 +1,64 @@
+name: Build &amp; Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/ev-ownership-nextjs-site-OZEN0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # Build + static-export validation. Runs on every push/PR and does NOT touch
+  # the Pages API, so it stays green even before Pages is enabled on the repo.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (static export)
+        env:
+          # Project Pages are served from /<repo>. This repo is "ev" -> "/ev".
+          # Override here (not via the Pages API) so the build never depends on
+          # Pages being enabled.
+          NEXT_PUBLIC_BASE_PATH: /ev
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  # Actual deployment. Gated to main so PR/feature-branch CI is just the build.
+  # Requires Pages to be enabled once (Settings -> Pages -> Source: GitHub
+  # Actions); the deployment token in some environments cannot auto-enable it.
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

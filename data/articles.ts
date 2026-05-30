@@ -1,0 +1,200 @@
+// Article catalog. "Fresh" articles are dated late May 2026 and surface at the
+// bottom of the home page; the most-read set powers the paginated "popular" list.
+
+export interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  date: string; // ISO
+  readMinutes: number;
+  views: number; // weekly views, drives "most popular"
+}
+
+export const articles: Article[] = [
+  {
+    id: 'nacs-adapters-2026',
+    title: 'NACS Adapters in 2026: Which Ones Actually Work at Superchargers',
+    excerpt: 'With nearly every brand on NACS now, we tested the official adapters and ranked them on speed, reliability, and fit.',
+    category: 'Charging',
+    date: '2026-05-28',
+    readMinutes: 7,
+    views: 18420,
+  },
+  {
+    id: 'waymo-expansion-cities',
+    title: 'Waymo’s 2026 City Rollout: Where You Can Hail a Driverless Ride Now',
+    excerpt: 'The robotaxi map keeps growing. Here is where fully driverless service is live, expanding, and still in testing.',
+    category: 'Autonomy',
+    date: '2026-05-27',
+    readMinutes: 6,
+    views: 16110,
+  },
+  {
+    id: 'winter-range-playbook',
+    title: 'The Winter Range Playbook: Keep 90% of Your Miles in the Cold',
+    excerpt: 'Preconditioning, seat heaters, and route tricks that claw back the range cold weather steals.',
+    category: 'Tips',
+    date: '2026-05-26',
+    readMinutes: 9,
+    views: 14980,
+  },
+  {
+    id: 'byd-vs-tesla-global',
+    title: 'BYD vs Tesla in 2026: What the Global Sales Race Means for US Buyers',
+    excerpt: 'BYD leads on volume and price abroad. Here is how the pressure is reshaping the US market — even without Chinese EVs on sale.',
+    category: 'Industry',
+    date: '2026-05-25',
+    readMinutes: 8,
+    views: 13750,
+  },
+  {
+    id: 'home-charger-install-guide',
+    title: 'Installing a Level 2 Home Charger: Permits, Costs, and Pitfalls',
+    excerpt: 'A realistic, end-to-end look at getting a 240V charger in your garage — and the rebates that pay for it.',
+    category: 'Charging',
+    date: '2026-05-24',
+    readMinutes: 11,
+    views: 12990,
+  },
+  {
+    id: 'solar-ev-payback',
+    title: 'Solar + EV: Running the Real Payback Math',
+    excerpt: 'We model a typical 8 kW system charging one EV and show when the panels pay for themselves.',
+    category: 'Solar',
+    date: '2026-05-23',
+    readMinutes: 10,
+    views: 11540,
+  },
+  {
+    id: 'used-ev-battery-check',
+    title: 'Buying a Used EV: The 5-Minute Battery Health Check',
+    excerpt: 'How to pull a state-of-health report and read fast-charge history before you sign anything.',
+    category: 'Buying',
+    date: '2026-05-22',
+    readMinutes: 6,
+    views: 10880,
+  },
+  {
+    id: 'ev9-vs-ioniq9',
+    title: 'Kia EV9 vs Hyundai Ioniq 9: The Three-Row Showdown',
+    excerpt: 'Two big Korean family EVs, one platform, very different personalities. Which deserves your driveway?',
+    category: 'Reviews',
+    date: '2026-05-21',
+    readMinutes: 8,
+    views: 9920,
+  },
+  {
+    id: 'road-trip-charging-curve',
+    title: 'Stop Charging to 100% on Road Trips (and Other Charge-Curve Secrets)',
+    excerpt: 'Why charging to 80% and driving on gets you there faster, with the math behind the curve.',
+    category: 'Tips',
+    date: '2026-05-20',
+    readMinutes: 7,
+    views: 9410,
+  },
+  {
+    id: 'cybertruck-towing-range',
+    title: 'We Towed With Four Electric Trucks. Here’s What Happened to Range',
+    excerpt: 'Towing can halve your range. We measured the hit across the Lightning, Silverado EV, R1T, and Cybertruck.',
+    category: 'Trucks',
+    date: '2026-05-19',
+    readMinutes: 9,
+    views: 8870,
+  },
+  {
+    id: 'teens-ev-autopilot',
+    title: 'Should Teens Learn to Drive on an EV With Driver Assist?',
+    excerpt: 'Instant torque, quiet cabins, and hands-free tech — what the safety research actually says for new drivers.',
+    category: 'Safety',
+    date: '2026-05-18',
+    readMinutes: 8,
+    views: 8330,
+  },
+  {
+    id: 'v2h-blackout',
+    title: 'Bidirectional Charging Saved My Weekend: A V2H Blackout Diary',
+    excerpt: 'When the grid went down, an electric truck kept the lights on. Here is how vehicle-to-home actually works.',
+    category: 'Features',
+    date: '2026-05-17',
+    readMinutes: 6,
+    views: 7720,
+  },
+  {
+    id: 'affordable-evs-2026',
+    title: 'The Sub-$35k EVs Finally Arriving in 2026',
+    excerpt: 'Affordable electric driving is here. We round up the value picks and their real-world range.',
+    category: 'Buying',
+    date: '2026-05-16',
+    readMinutes: 7,
+    views: 7180,
+  },
+  {
+    id: 'tire-wear-truth',
+    title: 'The Truth About EV Tire Wear (and How to Cut Your Bill)',
+    excerpt: 'Heavy, torquey EVs eat tires. Rotation schedules, pressures, and tire choices that make them last.',
+    category: 'Maintenance',
+    date: '2026-05-15',
+    readMinutes: 6,
+    views: 6640,
+  },
+  {
+    id: '800v-explained',
+    title: '800-Volt EVs Explained: Why They Charge So Much Faster',
+    excerpt: 'The architecture behind 18-minute fast charges, and which cars have it.',
+    category: 'Science',
+    date: '2026-05-14',
+    readMinutes: 7,
+    views: 6120,
+  },
+  {
+    id: 'robotaxi-race-2026',
+    title: 'The 2026 Robotaxi Race: Waymo, Tesla, Zoox, and the Global Field',
+    excerpt: 'Who is actually carrying passengers without a driver, where, and how safely.',
+    category: 'Autonomy',
+    date: '2026-05-13',
+    readMinutes: 10,
+    views: 5910,
+  },
+  {
+    id: 'apartment-charging',
+    title: 'No Garage? A Realistic Charging Plan for Apartment Dwellers',
+    excerpt: 'How to own an EV happily without a home plug — and the questions to ask before you buy.',
+    category: 'Charging',
+    date: '2026-05-12',
+    readMinutes: 8,
+    views: 5430,
+  },
+  {
+    id: 'lfp-vs-nmc',
+    title: 'LFP vs NMC: Which Battery Chemistry Should You Want?',
+    excerpt: 'Longevity, cost, cold-weather behavior, and why your next EV might be LFP.',
+    category: 'Science',
+    date: '2026-05-11',
+    readMinutes: 6,
+    views: 4980,
+  },
+  {
+    id: 'ca-tou-rates',
+    title: 'California EV Rate Plans: Charging for Pennies Overnight',
+    excerpt: 'Time-of-use plans from PG&E, SCE, and SDG&E and how to stack them with solar.',
+    category: 'Charging',
+    date: '2026-05-10',
+    readMinutes: 9,
+    views: 4510,
+  },
+  {
+    id: 'ev-fire-data',
+    title: 'Do EVs Catch Fire More? What the Data Really Shows',
+    excerpt: 'Per mile driven, EVs ignite less often than gas cars. We unpack the numbers and the headlines.',
+    category: 'Safety',
+    date: '2026-05-09',
+    readMinutes: 7,
+    views: 4120,
+  },
+];
+
+export const popularArticles = [...articles].sort((a, b) => b.views - a.views);
+export const freshArticles = [...articles].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+);
