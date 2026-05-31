@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useGame } from './GameProvider';
 
 // Optional Open Charge Map API key (NEXT_PUBLIC_OCM_KEY). Works key-less too,
 // just with stricter rate limits. Get a free key at openchargemap.org.
@@ -156,6 +157,7 @@ export default function StationFinder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const { record } = useGame();
 
   const search = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -206,6 +208,7 @@ export default function StationFinder() {
 
       setActiveSource(used);
       setStations(results);
+      record('tool:stations');
       if (results.length === 0) {
         setError('No charging stations found for this area. Try a larger radius or the other data source.');
       }

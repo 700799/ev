@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
+import { useGame } from '../GameProvider';
 
 type BodyType = 'sedan' | 'suv' | 'pickup';
 
@@ -35,6 +36,7 @@ const TYPES: { id: BodyType; label: string }[] = [
 export default function HeroScene() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const apiRef = useRef<ControlApi | null>(null);
+  const { record } = useGame();
 
   const [ready, setReady] = useState(false);
   const [charge, setCharge] = useState(62);
@@ -353,6 +355,7 @@ export default function HeroScene() {
     if (charge >= 100) setCharge(20);
     setCharging(true);
     apiRef.current?.startCharge();
+    record('3d:charge');
   };
 
   const chargeColor = charge < 20 ? 'var(--danger)' : charge < 50 ? 'var(--warn)' : 'var(--accent)';
@@ -375,6 +378,7 @@ export default function HeroScene() {
             onClick={() => {
               setBodyType(tp.id);
               apiRef.current?.setType(tp.id);
+              record('3d:bodytype');
             }}
             className={`btn ${bodyType === tp.id ? 'primary' : 'ghost'}`}
             style={{ padding: '6px 10px', fontSize: '0.8rem' }}
@@ -419,6 +423,7 @@ export default function HeroScene() {
                 onClick={() => {
                   setPaint(p.hex);
                   apiRef.current?.setColor(p.hex);
+                  record('3d:paint');
                 }}
                 style={{
                   width: 22,

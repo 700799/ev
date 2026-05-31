@@ -4,6 +4,7 @@ import { useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useGame } from './GameProvider';
 
 const pinIcon = (color: string) =>
   L.divIcon({
@@ -72,6 +73,7 @@ export default function TripPlanner() {
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { record } = useGame();
 
   const plan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +120,7 @@ export default function TripPlanner() {
         originLabel: a.label,
         destLabel: b.label,
       });
+      record('tool:trip');
 
       // Sample points along the route and find chargers near them.
       const samples = sampleLine(line, 6);

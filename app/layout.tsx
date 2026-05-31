@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { SITE, withBase } from '@/lib/site';
 import FloatingMenu from '@/components/FloatingMenu';
+import { GameProvider } from '@/components/GameProvider';
+import GameStatus from '@/components/GameStatus';
 
 export const metadata: Metadata = {
   title: `${SITE.name} — The Complete EV Ownership Guide`,
@@ -27,23 +29,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="topbar">
-          <div className="topbar-inner">
-            <a className="brand" href={withBase('/')}>
-              <span className="dot" />
-              {SITE.name}
-            </a>
-            <nav className="topnav">
-              <a href={withBase('/#stations')}>Stations</a>
-              <a href={withBase('/trip-planner/')}>Trip Planner</a>
-              <a href={withBase('/calculators/')}>Calculators</a>
-              <a href={withBase('/tutorials/')}>Tutorials</a>
-              <a href={withBase('/articles/')}>Articles</a>
-            </nav>
-          </div>
-        </header>
-        {children}
-        <FloatingMenu />
+        <GameProvider>
+          <header className="topbar">
+            <div className="topbar-inner">
+              <a className="brand" href={withBase('/')}>
+                <span className="dot" />
+                {SITE.name}
+              </a>
+              <nav className="topnav">
+                <a href={withBase('/#stations')}>Stations</a>
+                <a href={withBase('/trip-planner/')}>Trip Planner</a>
+                <a href={withBase('/calculators/')}>Calculators</a>
+                <a href={withBase('/tutorials/')}>Tutorials</a>
+                <a href={withBase('/articles/')}>Articles</a>
+                <a href={withBase('/#badges')}>🏆 Badges</a>
+              </nav>
+            </div>
+          </header>
+          {children}
+          <FloatingMenu />
+          <GameStatus />
+        </GameProvider>
       </body>
     </html>
   );

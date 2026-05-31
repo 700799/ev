@@ -55,7 +55,51 @@ export const batteryFacts: Fact[] = [
   },
 ];
 
-// 2. The science, lightly
+// 1b. Advanced ("beyond beginner") version of the battery facts
+export const batteryFactsAdvanced: Fact[] = [
+  {
+    title: '1. Calendar aging usually beats cycle aging',
+    body: 'For most drivers, time and average state of charge degrade the pack more than miles do. A cell parked at 90% in summer heat ages faster than one cycled daily between 30–70%. Optimize for average SoC and temperature, not just cycle count.',
+  },
+  {
+    title: '2. LFP’s flat voltage curve confuses the SoC meter',
+    body: 'Lithium iron phosphate has a very flat discharge curve, so the BMS struggles to estimate state of charge in the middle. That’s why makers tell LFP owners to charge to 100% weekly — it lets the BMS recalibrate the top reference point.',
+  },
+  {
+    title: '3. C-rate, not just kW, drives heat and wear',
+    body: 'Charging stress scales with C-rate (current relative to pack capacity). A 70 kWh pack at 150 kW is ~2.1C; the same 150 kW into a 100 kWh pack is 1.5C and gentler. Bigger packs fast-charge more comfortably for the same kW.',
+  },
+  {
+    title: '4. The charge curve is a thermal/anode-potential dance',
+    body: 'Tapering past ~50–80% isn’t arbitrary: as the anode fills, accepting more current risks lithium plating, so the BMS throttles power. Preconditioning and lower starting SoC keep you on the fat part of the curve longer.',
+  },
+  {
+    title: '5. Lithium plating is the cold-charging villain',
+    body: 'Fast-charging a cold cell can deposit metallic lithium on the anode (plating), permanently losing capacity and risking shorts. This is the real reason cold packs charge slowly — and why preconditioning matters beyond convenience.',
+  },
+  {
+    title: '6. Cell balancing happens near full charge',
+    body: 'Packs are hundreds of cells in series; tiny capacity differences drift over time. The BMS balances them (usually by bleeding the highest cells) mainly near the top of charge — another reason an occasional higher charge can be healthy.',
+  },
+  {
+    title: '7. SoH ≠ usable range, thanks to the buffer',
+    body: 'Makers hide a buffer above 100% and below 0%. Early “degradation” is often the buffer absorbing loss so your usable range holds, then range drops once the buffer is consumed. Read raw cell data, not just the range estimate.',
+  },
+  {
+    title: '8. Regen is capped by SoC, temp, and C-rate',
+    body: 'A full or cold battery can’t absorb regen — that’s why a freshly 100%-charged car coasts instead of braking, and why one-pedal feel changes with conditions. The pack limits charge current the same way it limits fast charging.',
+  },
+  {
+    title: '9. 800V cuts I²R losses, not just charge time',
+    body: 'Doubling voltage halves current for the same power, and resistive losses scale with current squared. 800V architectures run cooler, use thinner/lighter conductors, and sustain peak power longer — efficiency, not just bragging rights.',
+  },
+  {
+    title: '10. Thermal management is the real longevity lever',
+    body: 'Liquid-cooled packs that hold cells in a tight temperature window (and precondition for charging) routinely outlast passively cooled designs. When comparing EVs, the cooling strategy predicts long-term battery health better than chemistry alone.',
+  },
+];
+
+
 export const sciencePoints: Fact[] = [
   {
     title: 'How a lithium-ion cell works',
@@ -155,7 +199,134 @@ export const whatCanGoWrong: Fact[] = [
   { title: 'Tire wear', body: 'Heavy, torquey EVs wear tires faster. Budget for it and rotate on schedule.' },
 ];
 
-// 9. Where to get the best deals
+// 7b. Mid-advanced: deeper failure modes & the biggest owner complaints
+export const whatCanGoWrongAdvanced: Fact[] = [
+  {
+    title: 'Charging-curve disappointment, not battery failure',
+    body: 'The #1 "my EV is broken" complaint is usually physics: a cold or high-SoC pack tapers charging hard, so a "350 kW" station delivers 70 kW. Preconditioning and arriving at 10–20% fixes most of it. Read the session curve, not the station’s headline number.',
+  },
+  {
+    title: 'Public network reliability & payment failures',
+    body: 'Beyond Tesla, the top systemic gripe is broken stalls, failed handshakes, and dead payment terminals. Non-Tesla CCS reliability has measured well below 80% in studies. Mitigation: favor networks with live status + recent check-ins, carry two RFID/app accounts, and always pin a backup site.',
+  },
+  {
+    title: 'Phantom drain & vampire loss',
+    body: 'Sentry/guard cameras, frequent app pings, and constant preconditioning can quietly pull several percent a day while parked. Owners who "lost range overnight" usually left always-on features running. Disable cabin overheat protection and sentry when parked long-term.',
+  },
+  {
+    title: '12V battery: the silent stranding',
+    body: 'A huge share of "won’t turn on" tickets trace to the cheap 12V (or small Li) accessory battery that runs the computers and door actuators — not the traction pack. It fails like any 12V, often around years 3–4, and can lock you out of the frunk. Replace proactively.',
+  },
+  {
+    title: 'Heat-pump gaps & resistive-heat range hits',
+    body: 'EVs without a heat pump (or with an undersized one) can lose 30–40% winter range to cabin heat. Even heat-pump cars struggle below ~15°F. The fix is preconditioning on shore power and seat/wheel heat — but it’s a legitimate cold-climate complaint, not a myth.',
+  },
+  {
+    title: 'OTA updates that change behavior',
+    body: 'Software giveth and taketh: updates have altered regen feel, removed features, throttled charging on flagged packs, or introduced UI bugs. Read release notes, delay major updates a few days, and keep a note of settings that reset.',
+  },
+  {
+    title: 'Depreciation & price-cut whiplash',
+    body: 'Aggressive new-car price cuts crater used values overnight — a top financial complaint. Early adopters who financed at high prices got hit hardest. Mitigation: buy used past the steep curve, or lease to cap residual risk to the bank.',
+  },
+  {
+    title: 'Insurance & collision-repair cost shocks',
+    body: 'Structural packs, calibrated sensors, and "replace not repair" policies make minor hits expensive, and some insurers total EVs over small battery damage. Premiums can run higher. Check insurance and repair-network coverage before buying a given model.',
+  },
+  {
+    title: 'Tire and suspension wear from mass + torque',
+    body: 'Heavy, torquey EVs eat tires (sometimes 25–30% faster) and stress bushings. Owners are surprised by $1,200–$1,800 tire bills. Rotate religiously, hold exact pressures, and budget for EV-rated rubber.',
+  },
+  {
+    title: 'Apartment/condo charging access',
+    body: 'No reliable home charging turns ownership into a chore and pushes you onto pricey DC fast charging — a leading regret for renters. "Right to charge" laws help but installs stall on landlords/HOAs. Confirm a real daily charging plan before buying.',
+  },
+  {
+    title: 'Battery degradation edge cases',
+    body: 'Most packs age gracefully, but heat-soaked climates, habitual 100% DC fast charging, and a few specific model years degrade faster. The mid-advanced move: pull a state-of-health reading and fast-charge history rather than trusting the dashboard range.',
+  },
+  {
+    title: 'Connector fragmentation during the NACS transition',
+    body: 'Mid-transition pain: adapters that throttle or fail to handshake, Superchargers not yet opened to your car, and stalls too short to reach a side-port. Use automaker-certified adapters and verify a site supports your car before relying on it.',
+  },
+];
+
+// 7c. Ranked "biggest complaints" with how-real / how-to-mitigate framing
+export interface Complaint {
+  rank: number;
+  title: string;
+  severity: 'High' | 'Medium' | 'Overblown';
+  reality: string;
+  mitigation: string;
+}
+
+export const biggestComplaints: Complaint[] = [
+  {
+    rank: 1,
+    title: 'Public fast-charging reliability',
+    severity: 'High',
+    reality: 'Broken stalls, failed payments, and ICE’d/occupied spots are the most cited real-world frustration outside the Tesla network.',
+    mitigation: 'Use live-status apps, keep two charging accounts, prefer high-rated sites, and always have a backup stop pinned.',
+  },
+  {
+    rank: 2,
+    title: 'Winter range loss',
+    severity: 'High',
+    reality: 'Cold can cut 20–40% range and slow charging; cars without a heat pump suffer most.',
+    mitigation: 'Precondition on shore power, use seat/wheel heat, pad your buffer to 15–20% in winter.',
+  },
+  {
+    rank: 3,
+    title: 'Depreciation & price cuts',
+    severity: 'High',
+    reality: 'New-model price cuts and fast tech turnover hammer resale values, especially on financed early-adopter cars.',
+    mitigation: 'Buy 2–3 years used, or lease to push residual risk onto the lender.',
+  },
+  {
+    rank: 4,
+    title: 'Home-charging access (renters)',
+    severity: 'High',
+    reality: 'Without a home plug, ownership leans on expensive, less convenient public charging.',
+    mitigation: 'Confirm reliable L2 in your routine before buying; pursue right-to-charge / workplace charging.',
+  },
+  {
+    rank: 5,
+    title: 'Up-front price & incentive complexity',
+    severity: 'Medium',
+    reality: 'Sticker prices still skew high and credit eligibility (income/price/assembly caps) is confusing.',
+    mitigation: 'Use the point-of-sale credit, the lease path, and stack utility/state rebates.',
+  },
+  {
+    rank: 6,
+    title: 'Tire & repair costs',
+    severity: 'Medium',
+    reality: 'Mass and torque accelerate tire wear; specialized repairs and insurance can cost more.',
+    mitigation: 'Rotate on schedule, hold pressures, budget for EV tires, and check insurance before buying.',
+  },
+  {
+    rank: 7,
+    title: 'Software bugs & forced changes',
+    severity: 'Medium',
+    reality: 'OTA updates occasionally remove features or change regen/charging behavior.',
+    mitigation: 'Read release notes, delay big updates briefly, and report regressions.',
+  },
+  {
+    rank: 8,
+    title: '“They catch fire” fear',
+    severity: 'Overblown',
+    reality: 'Per mile, EVs ignite less often than gas cars; fires are rarer but harder to extinguish, which drives coverage.',
+    mitigation: 'Follow charging best practices; no special action needed beyond normal care.',
+  },
+  {
+    rank: 9,
+    title: '“The battery will die in a few years”',
+    severity: 'Overblown',
+    reality: 'Real-world data shows ~1–2%/yr typical loss with 8-yr/100k-mi warranties; most packs outlast fears.',
+    mitigation: 'Avoid habitual 100% DC charging and extreme heat; check SoH on used cars.',
+  },
+];
+
+
 export const dealTips: Fact[] = [
   { title: 'Federal & state incentives', body: 'In the US the federal clean-vehicle credit (up to $7,500 new / $4,000 used, income and price caps apply) can often be applied at the point of sale. States like California add rebates and clean-fuel programs on top.' },
   { title: 'Lease loophole', body: 'Leases frequently qualify for the commercial credit regardless of the car\'s origin, so a lease can be cheaper than financing even if you plan to buy out the lease later.' },
