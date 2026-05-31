@@ -363,6 +363,78 @@ export const biggestComplaints: Complaint[] = [
 ];
 
 
+// Total cost of ownership — line items comparing a typical EV vs a gas car.
+export interface TcoRow {
+  item: string;
+  ev: string;
+  gas: string;
+  note: string;
+}
+
+export const tcoRows: TcoRow[] = [
+  { item: 'Purchase price (new)', ev: 'Higher up front', gas: 'Lower up front', note: 'Federal/state incentives and leasing narrow or erase the gap.' },
+  { item: 'Fuel / energy (12k mi/yr)', ev: '$400–$700 (home charging)', gas: '$1,800–$2,400', note: 'Home charging at ~3–5¢/mi vs ~15–20¢/mi for gas.' },
+  { item: 'Routine maintenance', ev: '$300–$500/yr', gas: '$900–$1,200/yr', note: 'No oil, fewer fluids and moving parts.' },
+  { item: 'Brakes', ev: 'Rarely replaced', gas: 'Every 40–70k mi', note: 'Regenerative braking saves the friction brakes.' },
+  { item: 'Tires', ev: 'More often (heavy + torque)', gas: 'Standard interval', note: 'Budget extra; rotate on schedule.' },
+  { item: 'Insurance', ev: 'Often higher', gas: 'Lower–medium', note: 'Pricier parts/sensors; shop quotes before buying.' },
+  { item: 'Depreciation', ev: 'Steep early, then stabilizes', gas: 'Steadier', note: 'Buying 2–3 yr used dodges the worst of it.' },
+  { item: 'Home charger (one-time)', ev: '$500–$2,000 install', gas: 'N/A', note: 'Often offset by utility + federal charger credits.' },
+  { item: 'Big-ticket risk', ev: 'Battery (warrantied 8yr/100k)', gas: 'Engine/transmission', note: 'Both rare in the warranty window.' },
+];
+
+export const tcoTakeaways: Fact[] = [
+  { title: 'Lower running costs usually win over time', body: 'EVs cost more up front but far less to fuel and maintain. For a typical driver, the cheaper energy and maintenance often overtake the price premium within ~3–5 years.' },
+  { title: 'Home charging is the biggest lever', body: 'Charging at home on an overnight rate is what makes EV ownership cheap. Without reliable home/work charging, public DC fast charging erodes much of the fuel savings.' },
+  { title: 'Buy used to skip depreciation', body: 'EVs depreciate fastest in the first two to three years. A lightly used EV with most of its battery warranty left is often the lowest total-cost path.' },
+  { title: 'Budget for tires and insurance', body: 'The two line items that can surprise EV owners are faster tire wear and higher insurance premiums. Factor both in and there are no nasty shocks.' },
+];
+
+// Common maintenance — what actually needs doing on an EV.
+export interface MaintRow {
+  task: string;
+  interval: string;
+  cost: string;
+  why: string;
+}
+
+export const maintenanceRows: MaintRow[] = [
+  { task: 'Tire rotation', interval: 'Every 5,000–7,500 mi', cost: '$0–$60', why: 'EVs are heavy and torquey; rotating evens out wear and extends tire life.' },
+  { task: 'Tires (replacement)', interval: '~25,000–40,000 mi', cost: '$600–$1,400/set', why: 'The single biggest recurring EV cost — buy EV-rated tires and keep pressures correct.' },
+  { task: 'Cabin air filter', interval: 'Every 1–2 years', cost: '$15–$60 DIY', why: 'Keeps airflow and HVAC efficiency up; easy to do yourself.' },
+  { task: 'Brake fluid', interval: 'Every 2–3 years', cost: '$80–$150', why: 'Still hydraulic; fluid absorbs moisture over time even with light brake use.' },
+  { task: 'Coolant (battery/thermal)', interval: 'Long-life, ~100k+ mi', cost: 'Varies', why: 'Liquid-cooled packs use long-life coolant; check the manual for the interval.' },
+  { task: '12V accessory battery', interval: '~Every 3–5 years', cost: '$100–$300', why: 'The small battery runs the computers; failing it is a top "won\'t turn on" cause. Replace proactively.' },
+  { task: 'Wiper blades & washer fluid', interval: 'As needed', cost: '$15–$40', why: 'Ordinary upkeep, same as any car.' },
+  { task: 'Software updates', interval: 'Ongoing (OTA)', cost: 'Free', why: 'Over-the-air updates add features and fix bugs — keep current.' },
+  { task: 'Brake pads/rotors', interval: 'Rarely (regen)', cost: '$150–$300 if needed', why: 'Regenerative braking means pads often last the life of the car; inspect for rust instead.' },
+];
+
+export const noLongerNeeded: string[] = [
+  'Engine oil and oil filter changes — there is no engine.',
+  'Spark plugs, timing belts, and serpentine belts.',
+  'Transmission fluid services (most EVs have a single-speed gearbox).',
+  'Exhaust, catalytic converter, and emissions repairs.',
+  'Fuel filters, fuel pumps, and air-intake filters.',
+];
+
+// Accessories & upgrades — types of add-ons EV owners actually buy.
+export interface AccessoryCategory {
+  heading: string;
+  emoji: string;
+  items: string[];
+}
+
+export const accessoryCategories: AccessoryCategory[] = [
+  { heading: 'Charging', emoji: '🔌', items: ['Level 2 home charger (hardwired or NEMA 14-50 plug-in)', 'Portable/travel charger for 120V and 240V outlets', 'NACS ↔ CCS adapter for Supercharger access', 'Charging cable organizer / wall holster', 'Smart energy monitor or charger with scheduling'] },
+  { heading: 'Protection', emoji: '🛡️', items: ['All-weather floor mats and a cargo/trunk liner', 'Paint protection film (PPF) and ceramic coating', 'Screen protector for the center display', 'Mud flaps and door-edge guards', 'Charge-port cover or lock'] },
+  { heading: 'Range & efficiency', emoji: '🪶', items: ['Aero wheel covers for a small range bump', 'Quality low-rolling-resistance or EV-rated tires', 'Removable roof/bike racks (take them off when unused — they hurt range)', 'Sunshade to cut cabin heat and AC load'] },
+  { heading: 'Comfort & interior', emoji: '🛋️', items: ['Center-console organizers and trays', 'Phone mounts and extra USB-C / fast-charge ports', 'Seat covers and back-seat protectors (kids/pets)', 'Frunk organizer or cooler bag'] },
+  { heading: 'Utility & adventure', emoji: '🧰', items: ['Tow hitch and bike/cargo carriers', 'Roof box or roof rack for trips', 'Onboard power adapters (V2L) for camping and tools', 'Recovery boards and all-terrain tires for off-road EVs'] },
+  { heading: 'Tech & safety', emoji: '📱', items: ['Dashcam (front + rear) with sentry/parking mode', 'Tire pressure monitoring upgrades', 'Wireless CarPlay/Android Auto adapters', 'Emergency kit: jump pack for the 12V, tire repair kit, first aid'] },
+];
+
+// Where to get the best deals
 export const dealTips: Fact[] = [
   { title: 'Federal & state incentives', body: 'In the US the federal clean-vehicle credit (up to $7,500 new / $4,000 used, income and price caps apply) can often be applied at the point of sale. States like California add rebates and clean-fuel programs on top.' },
   { title: 'Lease loophole', body: 'Leases frequently qualify for the commercial credit regardless of the car\'s origin, so a lease can be cheaper than financing even if you plan to buy out the lease later.' },
