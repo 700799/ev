@@ -22,7 +22,6 @@ export interface NavSection {
 }
 
 export const NAV_SECTIONS: NavSection[] = [
-  { id: 'badges', label: 'Badges & Progress', group: 'Tools' },
   { id: 'stations', label: 'Find Stations', group: 'Tools' },
   { id: 'trip', label: 'Trip Planner', group: 'Tools' },
   { id: 'calculators', label: 'Calculators', group: 'Tools' },
