@@ -892,6 +892,120 @@ ol.steps li p {
   padding-top: 12px;
 }
 
+/* ---------------- Tile-as-button + peek hint ---------------- */
+button.tile {
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  width: 100%;
+}
+.tile-peek { position: relative; }
+.tile-peek::after {
+  content: '⌃';
+  position: absolute;
+  top: 8px;
+  right: 11px;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--muted);
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+.tile-peek:hover::after { color: var(--accent); opacity: 1; }
+
+/* ---------------- Bottom-sheet drawer ---------------- */
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+.drawer-root.open { visibility: visible; pointer-events: auto; }
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.62);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.drawer-root.open .drawer-backdrop { opacity: 1; }
+.drawer-panel {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer-root.open .drawer-panel { transform: translateY(0); }
+.drawer-handle {
+  width: 44px;
+  height: 5px;
+  margin: 10px auto 2px;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.drawer-title { margin: 2px 0 0; font-size: 1.15rem; }
+.drawer-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.drawer-close:hover { border-color: var(--accent); }
+.drawer-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 18px;
+}
+.drawer-subhead { margin: 18px 0 8px; }
+.drawer-cards { display: grid; gap: 12px; }
+@media (min-width: 560px) {
+  .drawer-cards { grid-template-columns: repeat(2, 1fr); }
+}
+a.drawer-article { text-decoration: none; color: inherit; display: block; }
+a.drawer-article:hover { border-color: var(--accent); }
+.drawer-article h3 { margin: 8px 0 6px; font-size: 1rem; }
+.drawer-foot {
+  flex: 0 0 auto;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.drawer-foot .btn { width: 100%; justify-content: center; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-backdrop, .drawer-panel { transition: none; }
+}
+
 /* On a phone, fit the whole launcher in one screen (no scroll). */
 @media (max-width: 560px) {
   .launcher { height: 100svh; }
@@ -1105,4 +1219,118 @@ ol.steps li p {
 @media (max-width: 640px) {
   .guidenav-group { width: 0; overflow: hidden; padding: 0; }
   .guidenav-row { padding: 0 10px; }
+}
+
+/* ---------------- Tile-as-button + peek hint ---------------- */
+button.tile {
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  width: 100%;
+}
+.tile-peek { position: relative; }
+.tile-peek::after {
+  content: '⌃';
+  position: absolute;
+  top: 8px;
+  right: 11px;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--muted);
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+.tile-peek:hover::after { color: var(--accent); opacity: 1; }
+
+/* ---------------- Bottom-sheet drawer ---------------- */
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+.drawer-root.open { visibility: visible; pointer-events: auto; }
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.62);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.drawer-root.open .drawer-backdrop { opacity: 1; }
+.drawer-panel {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer-root.open .drawer-panel { transform: translateY(0); }
+.drawer-handle {
+  width: 44px;
+  height: 5px;
+  margin: 10px auto 2px;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.drawer-title { margin: 2px 0 0; font-size: 1.15rem; }
+.drawer-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.drawer-close:hover { border-color: var(--accent); }
+.drawer-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 18px;
+}
+.drawer-subhead { margin: 18px 0 8px; }
+.drawer-cards { display: grid; gap: 12px; }
+@media (min-width: 560px) {
+  .drawer-cards { grid-template-columns: repeat(2, 1fr); }
+}
+a.drawer-article { text-decoration: none; color: inherit; display: block; }
+a.drawer-article:hover { border-color: var(--accent); }
+.drawer-article h3 { margin: 8px 0 6px; font-size: 1rem; }
+.drawer-foot {
+  flex: 0 0 auto;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.drawer-foot .btn { width: 100%; justify-content: center; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-backdrop, .drawer-panel { transition: none; }
 }
