@@ -562,63 +562,71 @@ ol.steps li p {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- Gamification: toasts + status chip ---------- */
-.toast-stack {
+/* ---------- Gamification: brief centered flash + status chip ---------- */
+/* Badge unlocks flash once, briefly, in the middle of the screen — they don't
+   stack or linger, so they never get in the way of the content. */
+.toast-flash-layer {
   position: fixed;
-  top: 74px;
-  right: 18px;
-  z-index: 80;
+  inset: 0;
+  z-index: 90;
   display: grid;
-  gap: 10px;
-  max-width: 320px;
+  place-items: center;
+  pointer-events: none;
 }
-.toast {
+.toast-flash {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--panel-2);
+  gap: 14px;
+  background: rgba(19, 28, 43, 0.95);
   border: 1px solid var(--accent);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 16px;
+  padding: 16px 22px;
   box-shadow: var(--shadow);
-  animation: toast-in 0.3s ease;
+  animation: toast-flash 1.4s ease forwards;
 }
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes toast-flash {
+  0% { opacity: 0; transform: scale(0.8); }
+  15% { opacity: 1; transform: scale(1.04); }
+  30% { transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.96); }
 }
-.toast-icon { font-size: 1.7rem; }
-.toast-title {
+.toast-flash-icon { font-size: 2.2rem; }
+.toast-flash-title {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--accent);
   font-weight: 800;
 }
-.toast-name { font-weight: 700; }
+.toast-flash-name { font-weight: 800; font-size: 1.05rem; }
 
+/* Compact accumulating status chip, pinned top-right under the bar, out of the
+   way of bottom-of-screen game controls. */
 .game-chip {
   position: fixed;
-  left: 18px;
-  bottom: 18px;
-  z-index: 60;
+  top: 64px;
+  right: 12px;
+  z-index: 40;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: var(--panel);
+  gap: 8px;
+  background: rgba(19, 28, 43, 0.82);
+  backdrop-filter: blur(6px);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 8px 14px 8px 10px;
+  padding: 5px 12px 5px 8px;
   box-shadow: var(--shadow);
   text-decoration: none;
   color: var(--text);
+  opacity: 0.9;
 }
-.game-chip:hover { border-color: var(--accent); text-decoration: none; }
-.game-chip-trophy { font-size: 1.2rem; }
-.game-chip-body { display: grid; gap: 4px; min-width: 120px; }
-.game-chip-top { font-size: 0.8rem; font-weight: 700; }
+.game-chip:hover { border-color: var(--accent); text-decoration: none; opacity: 1; }
+.game-chip-trophy { font-size: 1rem; }
+.game-chip-body { display: grid; gap: 3px; min-width: 92px; }
+.game-chip-top { font-size: 0.72rem; font-weight: 700; }
 .game-chip-bar {
-  height: 6px;
+  height: 5px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
@@ -630,7 +638,8 @@ ol.steps li p {
   transition: width 0.4s ease;
 }
 @media (max-width: 560px) {
-  .game-chip { display: none; }
+  .game-chip { top: 58px; padding: 4px 10px 4px 6px; }
+  .game-chip-body { min-width: 76px; }
 }
 
 /* ---------- Horizontal carousel ---------- */
@@ -887,3 +896,62 @@ ol.steps li p {
   .tile-label { font-size: 1rem; }
   .tile-sub { font-size: 0.8rem; }
 }
+
+/* ---------- Build configurator: sticky car + carousel option rows ---------- */
+.build-stage {
+  position: sticky;
+  top: 70px;
+  z-index: 5;
+  margin-bottom: 16px;
+}
+.build-row {
+  margin-bottom: 14px;
+}
+.build-row-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.opt-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.opt-rail::-webkit-scrollbar { height: 7px; }
+.opt-rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.opt-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.opt-chip:hover { border-color: var(--accent-2); }
+.opt-chip.on {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.opt-chip .opt-cost {
+  font-size: 0.75em;
+  color: var(--muted);
+}
+.opt-chip.on .opt-cost { color: var(--accent); }

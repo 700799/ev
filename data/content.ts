@@ -55,6 +55,42 @@ export const batteryFacts: Fact[] = [
   },
 ];
 
+// 1a-2. Intermediate version — a step beyond the basics, but not deep chemistry.
+export const batteryFactsIntermediate: Fact[] = [
+  {
+    title: '1. Set a daily charge limit',
+    body: 'Most EVs let you cap charging (e.g., 80%) in the app or screen. Set it once: the car stops there on its own, protecting the battery without you thinking about it. Bump to 100% only the night before a long trip.',
+  },
+  {
+    title: '2. Know your efficiency in mi/kWh',
+    body: 'Watch your miles per kilowatt-hour (mi/kWh) the way a gas driver watches MPG. ~3.5–4 mi/kWh is good; cold, speed, and hills drop it. It tells you real range better than the dashboard guess.',
+  },
+  {
+    title: '3. The charging curve, simply',
+    body: 'On a DC fast charger (the quick public kind), speed is highest at a low battery and slows as it fills. Charge to ~80% and drive on — the last 20% is slow and not worth the wait on a road trip.',
+  },
+  {
+    title: '4. Precondition before fast charging',
+    body: 'Tell the car to navigate to a fast charger and it warms the battery on the way. A warm pack charges much faster than a cold one — this one habit saves real time in winter.',
+  },
+  {
+    title: '5. Level 1 vs Level 2 vs DC fast',
+    body: 'Level 1 (a normal wall outlet) adds ~3–5 mi/hr. Level 2 (a 240-volt home charger) adds ~25–35 mi/hr — the daily-driver sweet spot. DC fast charging (public, high power) is for trips, not every night.',
+  },
+  {
+    title: '6. Battery warranty basics',
+    body: 'Most packs are warranted 8 years / 100,000 miles to keep at least ~70% capacity. Typical loss is only ~1–2% a year, so a few-year-old EV usually has plenty of healthy range left.',
+  },
+  {
+    title: '7. Regen braking does most of the slowing',
+    body: 'Lifting off the accelerator recovers energy and slows the car (regenerative braking). In “one-pedal” mode you rarely touch the brake pedal in town — smoother, and it stretches your range.',
+  },
+  {
+    title: '8. Plan home charging around cheap hours',
+    body: 'Many utilities offer cheaper overnight rates (time-of-use plans). Schedule charging to start late at night and you pay a fraction of peak prices — sometimes just a few cents per mile.',
+  },
+];
+
 // 1b. Advanced ("beyond beginner") version of the battery facts
 export const batteryFactsAdvanced: Fact[] = [
   {
@@ -62,16 +98,16 @@ export const batteryFactsAdvanced: Fact[] = [
     body: 'For most drivers, time and average state of charge degrade the pack more than miles do. A cell parked at 90% in summer heat ages faster than one cycled daily between 30–70%. Optimize for average SoC and temperature, not just cycle count.',
   },
   {
-    title: '2. LFP’s flat voltage curve confuses the SoC meter',
-    body: 'Lithium iron phosphate has a very flat discharge curve, so the BMS struggles to estimate state of charge in the middle. That’s why makers tell LFP owners to charge to 100% weekly — it lets the BMS recalibrate the top reference point.',
+    title: '2. LFP’s flat voltage curve confuses the charge meter',
+    body: 'Lithium iron phosphate (LFP) has a very flat discharge curve, so the battery management system (BMS) — the computer that watches every cell — struggles to estimate state of charge (SoC, how full the pack is) in the middle. That’s why makers tell LFP owners to charge to 100% weekly: it lets the BMS recalibrate the top reference point.',
   },
   {
     title: '3. C-rate, not just kW, drives heat and wear',
-    body: 'Charging stress scales with C-rate (current relative to pack capacity). A 70 kWh pack at 150 kW is ~2.1C; the same 150 kW into a 100 kWh pack is 1.5C and gentler. Bigger packs fast-charge more comfortably for the same kW.',
+    body: 'Charging stress scales with C-rate — the charging current relative to pack capacity. A 70 kilowatt-hour (kWh) pack at 150 kilowatts (kW) is about 2.1C; the same 150 kW into a 100 kWh pack is 1.5C and gentler. Bigger packs fast-charge more comfortably for the same kW.',
   },
   {
-    title: '4. The charge curve is a thermal/anode-potential dance',
-    body: 'Tapering past ~50–80% isn’t arbitrary: as the anode fills, accepting more current risks lithium plating, so the BMS throttles power. Preconditioning and lower starting SoC keep you on the fat part of the curve longer.',
+    title: '4. The charge curve is a thermal / anode-potential dance',
+    body: 'Tapering past ~50–80% isn’t arbitrary: as the anode (the electrode that fills during charging) loads up, accepting more current risks lithium plating, so the BMS throttles power. Preconditioning and a lower starting state of charge keep you on the fat, fast part of the curve longer.',
   },
   {
     title: '5. Lithium plating is the cold-charging villain',
@@ -82,16 +118,16 @@ export const batteryFactsAdvanced: Fact[] = [
     body: 'Packs are hundreds of cells in series; tiny capacity differences drift over time. The BMS balances them (usually by bleeding the highest cells) mainly near the top of charge — another reason an occasional higher charge can be healthy.',
   },
   {
-    title: '7. SoH ≠ usable range, thanks to the buffer',
-    body: 'Makers hide a buffer above 100% and below 0%. Early “degradation” is often the buffer absorbing loss so your usable range holds, then range drops once the buffer is consumed. Read raw cell data, not just the range estimate.',
+    title: '7. State of health ≠ usable range, thanks to the buffer',
+    body: 'Makers hide a buffer above 100% and below 0%. Early “degradation” in state of health (SoH, the pack’s remaining capacity vs new) is often the buffer absorbing loss so your usable range holds — then range drops once the buffer is consumed. Read raw cell data, not just the range estimate.',
   },
   {
-    title: '8. Regen is capped by SoC, temp, and C-rate',
-    body: 'A full or cold battery can’t absorb regen — that’s why a freshly 100%-charged car coasts instead of braking, and why one-pedal feel changes with conditions. The pack limits charge current the same way it limits fast charging.',
+    title: '8. Regen is capped by charge level, temperature, and C-rate',
+    body: 'A full or cold battery can’t absorb regenerative braking — that’s why a freshly 100%-charged car coasts instead of braking, and why one-pedal feel changes with conditions. The pack limits incoming current the same way it limits fast charging.',
   },
   {
-    title: '9. 800V cuts I²R losses, not just charge time',
-    body: 'Doubling voltage halves current for the same power, and resistive losses scale with current squared. 800V architectures run cooler, use thinner/lighter conductors, and sustain peak power longer — efficiency, not just bragging rights.',
+    title: '9. 800-volt packs cut resistive losses, not just charge time',
+    body: 'Doubling voltage halves current for the same power, and resistive heating (I²R loss — energy wasted as heat, proportional to current squared) drops sharply. 800-volt architectures run cooler, use thinner/lighter wiring, and hold peak power longer — efficiency, not just bragging rights.',
   },
   {
     title: '10. Thermal management is the real longevity lever',

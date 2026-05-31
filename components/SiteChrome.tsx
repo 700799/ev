@@ -34,6 +34,7 @@ export default function SiteChrome() {
             <a href={withBase('/trip-planner/')}>Trip Planner</a>
             <a href={withBase('/calculators/')}>Calculators</a>
             <a href={withBase('/build/')}>Build</a>
+            <a href={withBase('/explore/')}>Explore</a>
             <a href={withBase('/play/')}>Play</a>
             <a href={withBase('/guide/')}>Guide</a>
           </nav>

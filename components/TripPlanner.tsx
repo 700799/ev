@@ -77,7 +77,17 @@ export default function TripPlanner() {
 
   const plan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin.trim() || !dest.trim()) {
+    // Read straight from the form so browser/mobile autofill (which may not
+    // fire React onChange) is still picked up. Fall back to state.
+    const form = e.currentTarget as HTMLFormElement;
+    const fd = new FormData(form);
+    const originVal = ((fd.get('origin') as string) ?? origin ?? '').trim();
+    const destVal = ((fd.get('dest') as string) ?? dest ?? '').trim();
+    // Keep state in sync in case it was out of date.
+    if (originVal !== origin) setOrigin(originVal);
+    if (destVal !== dest) setDest(destVal);
+
+    if (!originVal || !destVal) {
       setError('Enter both a start and a destination (ZIP or city).');
       return;
     }
@@ -88,7 +98,7 @@ export default function TripPlanner() {
     const ac = new AbortController();
 
     try {
-      const [a, b] = await Promise.all([geocode(origin, ac.signal), geocode(dest, ac.signal)]);
+      const [a, b] = await Promise.all([geocode(originVal, ac.signal), geocode(destVal, ac.signal)]);
       if (!a || !b) {
         setError('Could not locate one of the places. Try a ZIP or "City, State".');
         setLoading(false);
@@ -165,11 +175,11 @@ export default function TripPlanner() {
       <form onSubmit={plan} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, alignItems: 'end' }}>
         <div className="field">
           <label>Start (ZIP or city)</label>
-          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="94583" />
+          <input name="origin" value={origin} onChange={(e) => { setOrigin(e.target.value); setError(null); }} placeholder="94583" />
         </div>
         <div className="field">
           <label>Destination</label>
-          <input value={dest} onChange={(e) => setDest(e.target.value)} placeholder="Los Angeles, CA" />
+          <input name="dest" value={dest} onChange={(e) => { setDest(e.target.value); setError(null); }} placeholder="Los Angeles, CA" />
         </div>
         <div className="field">
           <label>EV range (mi)</label>
