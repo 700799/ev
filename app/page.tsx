@@ -13,6 +13,8 @@ import ReadTracker from '@/components/ReadTracker';
 import Carousel from '@/components/Carousel';
 import PowerScenarios from '@/components/PowerScenarios';
 import WhatGoesWrong from '@/components/WhatGoesWrong';
+import ConfiguratorClient from '@/components/babylon/ConfiguratorClient';
+import DriveGameClient from '@/components/babylon/DriveGameClient';
 import { withBase, SITE } from '@/lib/site';
 import {
   batteryFacts,
@@ -405,6 +407,26 @@ export default function Home() {
       {/* ---------------- FAQ ---------------- */}
       <Section id="faq" kicker="More" title="Anything else? Quick answers" intro="The questions new owners ask most.">
         <FactGrid facts={faq} cols={3} />
+      </Section>
+
+      {/* ---------------- PLAY: 3D CONFIGURATOR ---------------- */}
+      <Section
+        id="configurator"
+        kicker="Play · build your EV"
+        title="Design your dream EV in 3D"
+        intro="Pick a body, paint, and wheel style, then tack on up to 15 accessories — roof racks, light bars, spoilers, underglow and more. Drag to spin it around your virtual garage."
+      >
+        <ConfiguratorClient />
+      </Section>
+
+      {/* ---------------- PLAY: DRIVE GAME ---------------- */}
+      <Section
+        id="drive-game"
+        kicker="Play · mini-game"
+        title="EV Dodge — drive, dodge & charge"
+        intro="Take the wheel! Switch lanes to dodge cones and deer, grab charge bolts to keep your battery alive, and see how far you can go as the speed ramps up. Arrows / A–D, buttons, or swipe to steer."
+      >
+        <DriveGameClient />
       </Section>
 
       {/* ---------------- POPULAR (PAGINATED) ---------------- */}

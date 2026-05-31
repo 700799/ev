@@ -47,6 +47,8 @@ export const NAV_SECTIONS: NavSection[] = [
   { id: 'teens', label: 'Teens & Autopilot', group: 'More' },
   { id: 'latest', label: 'Latest & Autonomy', group: 'More' },
   { id: 'faq', label: 'FAQ', group: 'More' },
+  { id: 'configurator', label: 'Build Your EV (3D)', group: 'Tools' },
+  { id: 'drive-game', label: 'EV Dodge Game', group: 'Tools' },
   { id: 'popular', label: 'Popular This Week', group: 'More' },
   { id: 'fresh', label: 'Fresh Articles', group: 'More' },
 ];
