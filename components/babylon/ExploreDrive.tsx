@@ -52,7 +52,7 @@ export default function ExploreDrive() {
 
   const cfg = useRef<CarConfig>(loadConfig());
   const specs = computeStats(cfg.current.body, cfg.current.wheel, cfg.current.accessories);
-  const ctrl = useRef({ boost: false, brake: false, drift: false, steer: 0, dragging: false });
+  const ctrl = useRef({ boost: false, brake: false, driftDir: 0, steer: 0, dragging: false });
   const [tilt, setTilt] = useState(false);
   const tiltRef = useRef(false);
   const stepRef = useRef<(d: number) => void>(() => {});
@@ -62,6 +62,26 @@ export default function ExploreDrive() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     record('feature:explore');
+
+    // --- Tire-skid sound (filtered white noise via Web Audio) ---
+    let audioCtx: AudioContext | null = null;
+    let skidGain: GainNode | null = null;
+    const initAudio = () => {
+      if (audioCtx) return;
+      try {
+        const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        audioCtx = new AC();
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.5, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true;
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1600; filter.Q.value = 0.8;
+        skidGain = audioCtx.createGain(); skidGain.gain.value = 0;
+        noise.connect(filter); filter.connect(skidGain); skidGain.connect(audioCtx.destination);
+        noise.start();
+      } catch { /* ignore */ }
+    };
+    const setSkid = (on: boolean) => { if (skidGain && audioCtx) skidGain.gain.setTargetAtTime(on ? 0.18 : 0, audioCtx.currentTime, 0.05); };
 
     const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
     const scene = new BABYLON.Scene(engine);
@@ -76,7 +96,7 @@ export default function ExploreDrive() {
 
     // Winding road: apparent X offset by depth (classic pseudo-3D bend).
     const bendOf = (z: number) => curve * z * z * 0.0016 + drift * -z * 0.04;
-    let curve = 0, curveTarget = 0, curveTimer = 0, drift = 0;
+    let curve = 0, curveTarget = 0, curveTimer = 0, drift = 0, hairpin = false;
 
     const groundMat = new BABYLON.StandardMaterial('gm', scene);
     groundMat.diffuseColor = new BABYLON.Color3(0.07, 0.08, 0.1); groundMat.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -217,21 +237,26 @@ export default function ExploreDrive() {
         batt = Math.max(0, batt - dt * (boosting ? 3.4 : c.brake ? 1.0 : 2.0));
 
         curveTimer -= dt;
-        if (curveTimer <= 0) { curveTarget = (Math.random() - 0.5) * 2.2; curveTimer = 2.5 + Math.random() * 2.5; }
+        if (curveTimer <= 0) {
+          // Most bends are gentle; sometimes a sharp 180° hairpin you must drift.
+          if (Math.random() < 0.28) { curveTarget = (Math.random() < 0.5 ? -1 : 1) * 5.2; curveTimer = 3.5 + Math.random() * 2; hairpin = true; }
+          else { curveTarget = (Math.random() - 0.5) * 2.2; curveTimer = 2.5 + Math.random() * 2.5; hairpin = false; }
+        }
         curve += (curveTarget - curve) * Math.min(1, dt * 0.7);
         drift += (curveTarget * 6 - drift) * Math.min(1, dt * 0.5);
 
-        // Drifting: real lateral slide across the road + smoke + boost charge.
-        if (c.drift && speed > 16) {
-          const dirSign = (c.steer < carX ? -1 : 1) || 1;
-          slideV += dirSign * 14 * dt;
+        // Directional drift (long-press DRIFT ◀ / ▶): slide that way like a skid.
+        if (c.driftDir !== 0 && speed > 14) {
+          slideV += c.driftDir * 16 * dt;
           driftCharge = Math.min(1, driftCharge + dt * 0.6);
-          if (Math.random() < 0.6) { puff(carX - 0.8, carRoot.position.z + 1.4); puff(carX + 0.8, carRoot.position.z + 1.4); }
+          setSkid(true);
+          if (Math.random() < 0.7) { puff(carX - 0.8, carRoot.position.z + 1.4); puff(carX + 0.8, carRoot.position.z + 1.4); }
         } else {
+          setSkid(false);
           if (driftCharge > 0.25) { boostBurst = 0.4 + driftCharge * 1.2; haptic([10, 30, 10]); }
           driftCharge = Math.max(0, driftCharge - dt * 1.5);
         }
-      }
+      } else { setSkid(false); }
 
       // Car X = steer target + drift slide (clamped to road width).
       const laneTarget = c.steer;
@@ -329,12 +354,14 @@ export default function ExploreDrive() {
     engine.runRenderLoop(() => scene.render());
 
     const setKey = (e: KeyboardEvent, on: boolean) => {
+      if (on) initAudio();
       const k = e.key.toLowerCase();
       if (k === 'arrowleft' || k === 'a') { if (on) step(-1); e.preventDefault(); }
       else if (k === 'arrowright' || k === 'd') { if (on) step(1); e.preventDefault(); }
       else if (k === 'arrowup' || k === 'w') { ctrl.current.boost = on; e.preventDefault(); }
       else if (k === 'arrowdown' || k === 's') { ctrl.current.brake = on; e.preventDefault(); }
-      else if (k === ' ' || k === 'shift') { ctrl.current.drift = on; e.preventDefault(); }
+      else if (k === 'q') { ctrl.current.driftDir = on ? -1 : 0; e.preventDefault(); }      // drift left
+      else if (k === 'e') { ctrl.current.driftDir = on ? 1 : 0; e.preventDefault(); }       // drift right
     };
     const kd = (e: KeyboardEvent) => setKey(e, true);
     const ku = (e: KeyboardEvent) => setKey(e, false);
@@ -349,7 +376,7 @@ export default function ExploreDrive() {
       const frac = (clientX - r.left) / r.width;          // 0..1 across screen
       ctrl.current.steer = Math.max(-5, Math.min(5, (frac - 0.5) * 11));
     };
-    const pd = (e: PointerEvent) => { ctrl.current.dragging = true; pointerSteer(e.clientX); };
+    const pd = (e: PointerEvent) => { initAudio(); ctrl.current.dragging = true; pointerSteer(e.clientX); };
     const pm = (e: PointerEvent) => { if (ctrl.current.dragging) pointerSteer(e.clientX); };
     const pu = () => { ctrl.current.dragging = false; };
     canvas.addEventListener('pointerdown', pd);
@@ -370,12 +397,14 @@ export default function ExploreDrive() {
       window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
       canvas.removeEventListener('pointerdown', pd); canvas.removeEventListener('pointermove', pm);
       window.removeEventListener('pointerup', pu); window.removeEventListener('deviceorientation', onTilt);
-      window.removeEventListener('resize', onResize); scene.dispose(); engine.dispose();
+      window.removeEventListener('resize', onResize); try { audioCtx?.close(); } catch { /* ignore */ } scene.dispose(); engine.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const press = (key: 'boost' | 'brake' | 'drift', on: boolean) => () => { ctrl.current[key] = on; };
+  const press = (key: 'boost' | 'brake', on: boolean) => () => { ctrl.current[key] = on; };
+  const driftPress = (dir: number) => { ctrl.current.driftDir = dir; haptic(12); };
+  const driftRelease = () => { ctrl.current.driftDir = 0; };
   const toggleTilt = async () => {
     const next = !tilt;
     // iOS requires a user-gesture permission request for motion sensors.
@@ -428,19 +457,22 @@ export default function ExploreDrive() {
 
       {/* Steering help + tilt toggle */}
       <div style={{ position: 'absolute', left: 10, bottom: 70, display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span className="small muted" style={{ pointerEvents: 'none' }}>👆 Slide to steer</span>
+        <span className="small muted" style={{ pointerEvents: 'none' }}>👆 Slide to steer · hold 🌀 Drift to skid through 180° hairpins</span>
         <button onClick={toggleTilt} style={{ ...ctrlBtn, width: 'auto', height: 30, fontSize: '0.72rem', padding: '0 10px', background: tilt ? 'var(--accent)' : 'rgba(19,28,43,0.9)', color: tilt ? '#06140f' : 'var(--text)' }}>📱 Tilt {tilt ? 'On' : 'Off'}</button>
       </div>
 
-      {/* Single wrapping control bar so every button is always visible */}
+      {/* Control bar — long-press the drift buttons to skid that way */}
       <div style={controlBar}>
-        <button style={ctrlBtn} onPointerDown={(e) => { e.preventDefault(); stepRef.current(-1); }} aria-label="Left">‹ Left</button>
-        <button style={{ ...ctrlBtn, position: 'relative', overflow: 'hidden', borderColor: hud.drift > 25 ? 'var(--accent)' : 'var(--border)' }} onPointerDown={press('drift', true)} onPointerUp={press('drift', false)} onPointerLeave={press('drift', false)} aria-label="Drift">
-          DRIFT<span style={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${hud.drift}%`, background: 'var(--accent)' }} />
-        </button>
+        <button
+          style={{ ...ctrlBtn, position: 'relative', overflow: 'hidden', borderColor: hud.drift > 25 ? 'var(--accent)' : 'var(--border)' }}
+          onPointerDown={(e) => { e.preventDefault(); driftPress(-1); }} onPointerUp={driftRelease} onPointerLeave={driftRelease} aria-label="Drift left"
+        >🌀◀ Drift<span style={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${hud.drift}%`, background: 'var(--accent)' }} /></button>
         <button style={ctrlBtn} onPointerDown={press('brake', true)} onPointerUp={press('brake', false)} onPointerLeave={press('brake', false)} aria-label="Brake">BRAKE</button>
         <button style={{ ...ctrlBtn, background: 'var(--accent)', color: '#06140f' }} onPointerDown={press('boost', true)} onPointerUp={press('boost', false)} onPointerLeave={press('boost', false)} aria-label="Boost">BOOST</button>
-        <button style={ctrlBtn} onPointerDown={(e) => { e.preventDefault(); stepRef.current(1); }} aria-label="Right">Right ›</button>
+        <button
+          style={{ ...ctrlBtn, position: 'relative', overflow: 'hidden', borderColor: hud.drift > 25 ? 'var(--accent)' : 'var(--border)' }}
+          onPointerDown={(e) => { e.preventDefault(); driftPress(1); }} onPointerUp={driftRelease} onPointerLeave={driftRelease} aria-label="Drift right"
+        >Drift ▶🌀<span style={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${hud.drift}%`, background: 'var(--accent)' }} /></button>
       </div>
     </div>
   );
