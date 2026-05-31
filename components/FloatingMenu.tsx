@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NAV_SECTIONS, type NavSection } from '@/lib/site';
 
-const GROUP_ORDER: NavSection['group'][] = ['Tools', 'Learn', 'Compare', 'More'];
+const GROUP_ORDER: NavSection['group'][] = ['Tools', 'Play', 'Learn', 'Compare', 'Tips'];
 
 export default function FloatingMenu() {
   const [open, setOpen] = useState(false);

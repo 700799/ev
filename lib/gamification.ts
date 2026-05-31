@@ -32,6 +32,7 @@ export const BADGES: Badge[] = [
   { id: 'energy-detective', name: 'Energy Detective', icon: '🔋', desc: 'Explore what drains and charges the battery.', xp: 60, check: (e) => e.has('feature:power') },
   { id: 'troubleshooter', name: 'Troubleshooter', icon: '🔧', desc: 'Dig into the mid-advanced failure modes.', xp: 60, check: (e) => e.has('failures:advanced') },
   { id: 'designer', name: 'Custom Builder', icon: '🛠️', desc: 'Build an EV in the 3D configurator.', xp: 60, check: (e) => e.has('feature:configurator') },
+  { id: 'explorer-drive', name: 'City Explorer', icon: '🌆', desc: 'Drive your build through the city.', xp: 60, check: (e) => e.has('feature:explore') },
   { id: 'test-driver', name: 'Test Driver', icon: '🏎️', desc: 'Play the EV Dodge mini-game.', xp: 50, check: (e) => e.has('feature:drivegame') },
   { id: 'road-warrior', name: 'Road Warrior', icon: '🏆', desc: 'Score 500+ in EV Dodge.', xp: 120, check: (e) => e.has('drive:500') },
   { id: 'turbo-charged', name: 'Turbo Charged', icon: '🚀', desc: 'Grab a turbo boost in EV Dodge.', xp: 50, check: (e) => e.has('drive:turbo') },

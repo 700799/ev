@@ -60,9 +60,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         for (const b of BADGES) {
           if (!nextEarned.has(b.id) && b.check(next)) {
             nextEarned.add(b.id);
+            // Flash a single, brief, centered toast (replaces any prior one) so
+            // earned badges don't pile up over the content.
             const t = { id: ++toastId.current, badge: b };
-            setToasts((ts) => [...ts, t]);
-            setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== t.id)), 4500);
+            setToasts([t]);
+            setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== t.id)), 1400);
           }
         }
         return nextEarned;
@@ -96,13 +98,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   return (
     <GameContext.Provider value={value}>
       {children}
-      <div className="toast-stack" aria-live="polite">
+      <div className="toast-flash-layer" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className="toast" role="status">
-            <span className="toast-icon">{t.badge.icon}</span>
+          <div key={t.id} className="toast-flash" role="status">
+            <span className="toast-flash-icon">{t.badge.icon}</span>
             <div>
-              <div className="toast-title">Badge unlocked!</div>
-              <div className="toast-name">
+              <div className="toast-flash-title">Badge unlocked!</div>
+              <div className="toast-flash-name">
                 {t.badge.name} <span className="muted small">+{t.badge.xp} XP</span>
               </div>
             </div>

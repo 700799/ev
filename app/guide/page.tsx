@@ -18,6 +18,7 @@ import DriveGameClient from '@/components/babylon/DriveGameClient';
 import { withBase, SITE } from '@/lib/site';
 import {
   batteryFacts,
+  batteryFactsIntermediate,
   batteryFactsAdvanced,
   sciencePoints,
   performanceTips,
@@ -128,11 +129,11 @@ export default function Home() {
       {/* ---------------- 10 BATTERY FACTS ---------------- */}
       <Section
         id="battery"
-        kicker="Learn · beginner → advanced"
+        kicker="Learn · beginner → intermediate → advanced"
         title="10 things to know about battery & charging"
-        intro="Switch to Advanced for the beyond-beginner version — calendar aging, C-rates, lithium plating, cell balancing, and more — then test yourself with the quiz."
+        intro="Pick your level — Beginner, Intermediate, or Advanced (calendar aging, C-rates, lithium plating, cell balancing, and more, with acronyms spelled out) — then test yourself with the quiz. Swipe the cards sideways."
       >
-        <BatteryFacts beginner={batteryFacts} advanced={batteryFactsAdvanced} />
+        <BatteryFacts beginner={batteryFacts} intermediate={batteryFactsIntermediate} advanced={batteryFactsAdvanced} />
         <div style={{ marginTop: 24 }}>
           <BatteryQuiz />
         </div>
@@ -189,7 +190,7 @@ export default function Home() {
         title="How to drive an EV"
         intro="They drive differently — mostly better — once you adjust."
       >
-        <FactGrid facts={drivingPoints} cols={2} />
+        <FactGrid facts={drivingPoints} carousel />
       </Section>
 
       {/* ---------------- PRO TECHNIQUES ---------------- */}
@@ -371,7 +372,7 @@ export default function Home() {
         title="Garage charging in CA vs other charging"
         intro="Home Level 2 charging is the foundation — and California's rates and solar make it especially cheap."
       >
-        <FactGrid facts={chargingTypes} cols={3} />
+        <FactGrid facts={chargingTypes} carousel />
       </Section>
 
       {/* ---------------- SOLAR ---------------- */}
@@ -381,7 +382,7 @@ export default function Home() {
         title="Solar panel setups & cost"
         intro="Pair panels with your EV to drive on sunshine. Use the Solar calculator above to model your payback."
       >
-        <FactGrid facts={solarPoints} cols={3} />
+        <FactGrid facts={solarPoints} carousel />
       </Section>
 
       {/* ---------------- TEENS ---------------- */}
@@ -391,7 +392,7 @@ export default function Home() {
         title="Should teens learn to drive on an EV with autopilot?"
         intro="The honest answer: EVs are great learners' cars, but hands-off assist should wait."
       >
-        <FactGrid facts={teensAndAutopilot} cols={2} />
+        <FactGrid facts={teensAndAutopilot} carousel />
       </Section>
 
       {/* ---------------- LATEST & AUTONOMY ---------------- */}
@@ -406,7 +407,7 @@ export default function Home() {
 
       {/* ---------------- FAQ ---------------- */}
       <Section id="faq" kicker="More" title="Anything else? Quick answers" intro="The questions new owners ask most.">
-        <FactGrid facts={faq} cols={3} />
+        <FactGrid facts={faq} carousel />
       </Section>
 
       {/* ---------------- PLAY: 3D CONFIGURATOR ---------------- */}
@@ -417,6 +418,18 @@ export default function Home() {
         intro="Pick a body, paint, and wheel style, then tack on up to 15 accessories. Watch the live budget and see how each add-on's weight and aerodynamic drag changes your range, 0–60, and cornering grip. Drag to spin it around your garage."
       >
         <ConfiguratorClient />
+      </Section>
+
+      {/* ---------------- PLAY: DRIVE & EXPLORE ---------------- */}
+      <Section
+        id="explore"
+        kicker="Play · free roam"
+        title="Drive & explore the EV you built"
+        intro="Take the exact car from the builder above for a free-roam cruise through a city of changing landscapes — downtown, neon district, waterfront, forest, desert, and mountains."
+      >
+        <div style={{ textAlign: 'center' }}>
+          <a className="btn primary" href={withBase('/explore/')}>🌆 Open Drive &amp; Explore →</a>
+        </div>
       </Section>
 
       {/* ---------------- PLAY: DRIVE GAME ---------------- */}

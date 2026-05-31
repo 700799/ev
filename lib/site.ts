@@ -18,7 +18,7 @@ export const SITE = {
 export interface NavSection {
   id: string;
   label: string;
-  group: 'Tools' | 'Learn' | 'Compare' | 'More';
+  group: 'Tools' | 'Learn' | 'Compare' | 'Tips' | 'Play';
 }
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -38,17 +38,18 @@ export const NAV_SECTIONS: NavSection[] = [
   { id: 'model-years', label: 'Compare Model Years', group: 'Compare' },
   { id: 'foreign', label: 'Foreign vs US', group: 'Compare' },
   { id: 'new-models', label: 'New Models', group: 'Compare' },
-  { id: 'avoid', label: 'What to Avoid', group: 'More' },
-  { id: 'wrong', label: 'What Can Go Wrong', group: 'More' },
-  { id: 'nightmares', label: 'Nightmare Scenarios', group: 'More' },
-  { id: 'deals', label: 'Best Deals', group: 'More' },
-  { id: 'charging-types', label: 'Garage vs Other Charging', group: 'More' },
-  { id: 'solar', label: 'Solar Setups', group: 'More' },
-  { id: 'teens', label: 'Teens & Autopilot', group: 'More' },
-  { id: 'latest', label: 'Latest & Autonomy', group: 'More' },
-  { id: 'faq', label: 'FAQ', group: 'More' },
-  { id: 'configurator', label: 'Build Your EV (3D)', group: 'Tools' },
-  { id: 'drive-game', label: 'EV Dodge Game', group: 'Tools' },
-  { id: 'popular', label: 'Popular This Week', group: 'More' },
-  { id: 'fresh', label: 'Fresh Articles', group: 'More' },
+  { id: 'avoid', label: 'What to Avoid', group: 'Tips' },
+  { id: 'wrong', label: 'What Can Go Wrong', group: 'Tips' },
+  { id: 'nightmares', label: 'Nightmare Scenarios', group: 'Tips' },
+  { id: 'deals', label: 'Best Deals', group: 'Tips' },
+  { id: 'charging-types', label: 'Garage vs Other Charging', group: 'Tips' },
+  { id: 'solar', label: 'Solar Setups', group: 'Tips' },
+  { id: 'teens', label: 'Teens & Autopilot', group: 'Tips' },
+  { id: 'latest', label: 'Latest & Autonomy', group: 'Tips' },
+  { id: 'faq', label: 'FAQ', group: 'Tips' },
+  { id: 'configurator', label: 'Build Your EV (3D)', group: 'Play' },
+  { id: 'explore', label: 'Drive & Explore', group: 'Play' },
+  { id: 'drive-game', label: 'EV Dodge Game', group: 'Play' },
+  { id: 'popular', label: 'Popular This Week', group: 'Tips' },
+  { id: 'fresh', label: 'Fresh Articles', group: 'Tips' },
 ];
