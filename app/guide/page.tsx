@@ -164,8 +164,8 @@ export default function Home() {
       <Section
         id="science-lab"
         kicker="Learn · interactive lab"
-        title="Science lab: four animations you can play with"
-        intro="Real, physics-based demos — regenerative braking energy recovery, aerodynamic drag rising with the square of speed, the DC fast-charge taper curve, and battery thermal management with coolant flow. Drag sliders and orbit each scene."
+        title="Science lab: six animations you can play with"
+        intro="Real, physics-based demos — regenerative braking energy recovery, aerodynamic drag rising with the square of speed, the DC fast-charge taper curve, battery thermal management with coolant flow, cornering (centripetal force vs grip), and inertia/momentum braking distance. Drag the sliders and orbit each scene."
       >
         <ScienceLabClient />
       </Section>

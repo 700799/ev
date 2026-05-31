@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useGame } from '../GameProvider';
 
-type Demo = 'regen' | 'drag' | 'charge' | 'thermal';
+type Demo = 'regen' | 'drag' | 'charge' | 'thermal' | 'cornering' | 'inertia';
 
 const TABS: { id: Demo; label: string }[] = [
   { id: 'regen', label: '♻️ Regen Braking' },
   { id: 'drag', label: '💨 Aero Drag' },
   { id: 'charge', label: '🔌 Charge Curve' },
   { id: 'thermal', label: '🌡️ Thermal' },
+  { id: 'cornering', label: '🌀 Cornering' },
+  { id: 'inertia', label: '🧱 Inertia' },
 ];
 
 /**
@@ -27,8 +29,10 @@ export default function ScienceLab() {
   const [speed, setSpeed] = useState(65); // mph (drag) / starting speed (regen)
   const [soc, setSoc] = useState(10); // % state of charge (charge curve)
   const [cooling, setCooling] = useState(true); // thermal: coolant on/off
-  const params = useRef({ speed: 65, soc: 10, cooling: true });
-  useEffect(() => { params.current = { speed, soc, cooling }; }, [speed, soc, cooling]);
+  const [cornerMph, setCornerMph] = useState(35); // cornering entry speed
+  const [massKg, setMassKg] = useState(2100); // inertia: vehicle mass
+  const params = useRef({ speed: 65, soc: 10, cooling: true, cornerMph: 35, massKg: 2100 });
+  useEffect(() => { params.current = { speed, soc, cooling, cornerMph, massKg }; }, [speed, soc, cooling, cornerMph, massKg]);
 
   // Live readouts driven by the render loop.
   const [readout, setReadout] = useState<{ a: string; b: string; c: string }>({ a: '', b: '', c: '' });
@@ -65,50 +69,68 @@ export default function ScienceLab() {
         ))}
       </div>
 
-      <div className="grid cols-2" style={{ alignItems: 'start' }}>
-        <div className="canvas-frame" style={{ minHeight: 320 }}>
-          <canvas ref={canvasRef} style={{ width: '100%', height: '320px', display: 'block', touchAction: 'none' }} />
+      {/* Canvas on top (shorter), controls + readouts directly under it so you
+          can adjust and watch the scene at the same time. */}
+      <div className="canvas-frame" style={{ minHeight: 240, position: 'relative' }}>
+        <canvas ref={canvasRef} style={{ width: '100%', height: '240px', display: 'block', touchAction: 'none' }} />
+        {/* Compact live readouts overlaid on the scene corner. */}
+        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>
+          {([readout.a, readout.b, readout.c] as const).filter(Boolean).map((r, i) => (
+            <div key={i} style={{ background: 'rgba(10,14,20,0.78)', border: '1px solid var(--border)', borderRadius: 9, padding: '4px 9px' }}>
+              <span className="small muted">{r.split('|')[0]}: </span>
+              <strong>{r.split('|')[1]}</strong>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="card">
-          {demo === 'regen' && (
-            <>
-              <h3>Regenerative braking</h3>
-              <p className="small muted">Lifting off the accelerator turns the motor into a generator. The car&apos;s kinetic energy (½·m·v²) is converted back into charge instead of wasted as brake heat. Faster cars carry more energy to recover.</p>
-              <Slider label={`Starting speed: ${speed} mph`} min={20} max={90} value={speed} set={setSpeed} />
-            </>
-          )}
-          {demo === 'drag' && (
-            <>
-              <h3>Aerodynamic drag</h3>
-              <p className="small muted">Drag force = ½·ρ·Cd·A·v². Because it grows with the <em>square</em> of speed, going faster costs far more energy — the streamlines turn turbulent and the force readout climbs sharply.</p>
-              <Slider label={`Speed: ${speed} mph`} min={20} max={90} value={speed} set={setSpeed} />
-            </>
-          )}
-          {demo === 'charge' && (
-            <>
-              <h3>The charging taper</h3>
-              <p className="small muted">On a DC fast charger, power is high at low charge then tapers as the battery fills (to avoid lithium plating). Set the starting charge and watch how fast it fills — the last 20% is slow, which is why you charge to ~80% on trips.</p>
-              <Slider label={`Start charge: ${soc}%`} min={5} max={80} value={soc} set={setSoc} />
-            </>
-          )}
-          {demo === 'thermal' && (
-            <>
-              <h3>Thermal management</h3>
-              <p className="small muted">Fast charging makes cells hot (color = temperature). Liquid coolant flowing through the pack carries heat away, keeping cells in their safe window — the key to long battery life and sustained charging speed.</p>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                <input type="checkbox" checked={cooling} onChange={(e) => setCooling(e.target.checked)} />
-                <span>Coolant pump {cooling ? 'ON' : 'OFF'}</span>
-              </label>
-            </>
-          )}
-
-          <div className="grid cols-2" style={{ marginTop: 14, gap: 10 }}>
-            {readout.a && <div className="card" style={{ padding: 12 }}><div className="num">{readout.a.split('|')[0]}</div><div className="result-strong" style={{ fontSize: '1.4rem' }}>{readout.a.split('|')[1]}</div></div>}
-            {readout.b && <div className="card" style={{ padding: 12 }}><div className="num">{readout.b.split('|')[0]}</div><div className="result-strong" style={{ fontSize: '1.4rem' }}>{readout.b.split('|')[1]}</div></div>}
-            {readout.c && <div className="card" style={{ padding: 12, gridColumn: '1 / -1' }}><div className="num">{readout.c.split('|')[0]}</div><div className="result-strong" style={{ fontSize: '1.4rem' }}>{readout.c.split('|')[1]}</div></div>}
-          </div>
-        </div>
+      <div className="card" style={{ marginTop: 12 }}>
+        {demo === 'regen' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>Regenerative braking</h3>
+            <p className="small muted">Lifting off the accelerator turns the motor into a generator. The car&apos;s kinetic energy (½·m·v²) is converted back into charge instead of wasted as brake heat. Faster cars carry more energy to recover.</p>
+            <Slider label={`Starting speed: ${speed} mph`} min={20} max={90} value={speed} set={setSpeed} />
+          </>
+        )}
+        {demo === 'drag' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>Aerodynamic drag</h3>
+            <p className="small muted">Drag force = ½·ρ·Cd·A·v². Because it grows with the <em>square</em> of speed, going faster costs far more energy — the streamlines turn turbulent and the force readout climbs sharply.</p>
+            <Slider label={`Speed: ${speed} mph`} min={20} max={90} value={speed} set={setSpeed} />
+          </>
+        )}
+        {demo === 'charge' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>The charging taper</h3>
+            <p className="small muted">On a DC fast charger, power is high at low charge then tapers as the battery fills (to avoid lithium plating). Set the starting charge and watch how fast it fills — the last 20% is slow, which is why you charge to ~80% on trips.</p>
+            <Slider label={`Start charge: ${soc}%`} min={5} max={80} value={soc} set={setSoc} />
+          </>
+        )}
+        {demo === 'thermal' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>Thermal management</h3>
+            <p className="small muted">Fast charging makes cells hot (color = temperature). Liquid coolant flowing through the pack carries heat away, keeping cells in their safe window — the key to long battery life and sustained charging speed.</p>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+              <input type="checkbox" checked={cooling} onChange={(e) => setCooling(e.target.checked)} />
+              <span>Coolant pump {cooling ? 'ON' : 'OFF'}</span>
+            </label>
+          </>
+        )}
+        {demo === 'cornering' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>Cornering physics</h3>
+            <p className="small muted">To turn, tires must supply a centripetal force F = m·v²/r toward the center of the curve. Grip can only provide up to about μ·m·g. Raise the entry speed: once the needed force exceeds the grip limit, the car slides wide and leaves skid marks.</p>
+            <Slider label={`Entry speed: ${cornerMph} mph`} min={15} max={70} value={cornerMph} set={setCornerMph} />
+          </>
+        )}
+        {demo === 'inertia' && (
+          <>
+            <h3 style={{ marginTop: 0 }}>Inertia &amp; momentum</h3>
+            <p className="small muted">Newton&apos;s first law: a moving mass keeps moving. Momentum p = m·v, and braking distance grows with the <em>square</em> of speed (d = v²/2μg). A heavier EV carries more momentum and takes longer to stop — try a faster entry or a heavier car and watch it run the line.</p>
+            <Slider label={`Entry speed: ${speed} mph`} min={20} max={90} value={speed} set={setSpeed} />
+            <Slider label={`Vehicle mass: ${massKg} kg`} min={1400} max={3200} value={massKg} set={setMassKg} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -123,13 +145,24 @@ function Slider({ label, min, max, value, set }: { label: string; min: number; m
   );
 }
 
-type Params = React.MutableRefObject<{ speed: number; soc: number; cooling: boolean }>;
+type Params = React.MutableRefObject<{ speed: number; soc: number; cooling: boolean; cornerMph: number; massKg: number }>;
 type SetReadout = (r: { a: string; b: string; c: string }) => void;
 
 function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, params: Params, setReadout: SetReadout): (() => void) | void {
-  const cam = new BABYLON.ArcRotateCamera('c', -Math.PI / 2.2, Math.PI / 2.6, 18, new BABYLON.Vector3(0, 1, 0), scene);
+  // Per-demo framing so each scene fills the (short) canvas instead of floating
+  // in empty space. target/radius tuned to the geometry each demo builds.
+  const FRAME: Record<Demo, { target: [number, number, number]; radius: number; alpha: number; beta: number }> = {
+    regen: { target: [-1, 1, 0], radius: 14, alpha: -Math.PI / 2.2, beta: Math.PI / 2.5 },
+    drag: { target: [0, 1.6, 0], radius: 13, alpha: -Math.PI / 2, beta: Math.PI / 2.6 },
+    charge: { target: [3, 3, 0], radius: 13, alpha: -Math.PI / 2, beta: Math.PI / 2.4 },
+    thermal: { target: [0, 1, 0], radius: 12, alpha: -Math.PI / 2, beta: Math.PI / 3.2 },
+    cornering: { target: [0, 0.5, 0], radius: 22, alpha: -Math.PI / 2, beta: Math.PI / 3.4 },
+    inertia: { target: [0, 0.8, 0], radius: 20, alpha: -Math.PI / 2, beta: Math.PI / 2.7 },
+  };
+  const f = FRAME[demo];
+  const cam = new BABYLON.ArcRotateCamera('c', f.alpha, f.beta, f.radius, new BABYLON.Vector3(...f.target), scene);
   cam.attachControl(scene.getEngine().getRenderingCanvas(), true);
-  cam.lowerRadiusLimit = 10; cam.upperRadiusLimit = 30;
+  cam.lowerRadiusLimit = 8; cam.upperRadiusLimit = 26;
   const hemi = new BABYLON.HemisphericLight('h', new BABYLON.Vector3(0, 1, 0.2), scene); hemi.intensity = 0.9;
   const glow = new BABYLON.GlowLayer('g', scene); glow.intensity = 0.6;
   const C3 = BABYLON.Color3;
@@ -139,7 +172,6 @@ function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, par
   const ui = (cb: () => void) => { const t = performance.now(); if (t - lastUi > 120) { lastUi = t; cb(); } };
 
   if (demo === 'regen') {
-    cam.setPosition(new BABYLON.Vector3(8, 5, 14));
     // A simple car + four wheels + an energy bar from motor to battery.
     const carMat = new BABYLON.StandardMaterial('cm', scene); carMat.diffuseColor = new C3(0.12, 0.5, 0.42);
     const body = BABYLON.MeshBuilder.CreateBox('body', { width: 4, height: 1, depth: 2 }, scene);
@@ -195,7 +227,6 @@ function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, par
   }
 
   if (demo === 'drag') {
-    cam.setPosition(new BABYLON.Vector3(0, 4, 16));
     const carMat = new BABYLON.StandardMaterial('cm', scene); carMat.diffuseColor = new C3(0.12, 0.5, 0.42); carMat.specularColor = new C3(0.2, 0.2, 0.2);
     const body = BABYLON.MeshBuilder.CreateBox('body', { width: 4.4, height: 1.1, depth: 2 }, scene); body.position.y = 1; body.material = carMat;
     const cab = BABYLON.MeshBuilder.CreateBox('cab', { width: 2.4, height: 0.9, depth: 1.8 }, scene); cab.position.set(-0.3, 1.9, 0); cab.material = carMat;
@@ -240,7 +271,6 @@ function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, par
   }
 
   if (demo === 'charge') {
-    cam.setPosition(new BABYLON.Vector3(6, 4, 14));
     // Battery shell + animated fill + a live curve plotted from points.
     const shell = BABYLON.MeshBuilder.CreateBox('shell', { width: 3, height: 6, depth: 3 }, scene);
     shell.position.y = 3; const sm = new BABYLON.StandardMaterial('sm', scene); sm.diffuseColor = new C3(0.1, 0.12, 0.18); sm.alpha = 0.35; shell.material = sm;
@@ -271,8 +301,7 @@ function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, par
     return;
   }
 
-  // thermal
-  cam.setPosition(new BABYLON.Vector3(0, 7, 14));
+  if (demo === 'thermal') {
   const cells: { mesh: BABYLON.Mesh; mat: BABYLON.StandardMaterial; temp: number }[] = [];
   for (let x = 0; x < 6; x++) for (let z = 0; z < 4; z++) {
     const c = BABYLON.MeshBuilder.CreateCylinder('cell', { diameter: 0.9, height: 2, tessellation: 16 }, scene);
@@ -309,6 +338,107 @@ function buildDemo(demo: Demo, scene: BABYLON.Scene, engine: BABYLON.Engine, par
       a: `HOTTEST CELL|${maxT.toFixed(0)}°C`,
       b: `AVERAGE|${(sumT / cells.length).toFixed(0)}°C`,
       c: cooling ? 'STATUS|Coolant holding cells safe ✅' : 'STATUS|No cooling — overheating ⚠️',
+    }));
+  });
+  return;
+  }
+
+  if (demo === 'cornering') {
+    // Centripetal force F = m·v²/r. The car follows a circle of radius r while
+    // grip can only supply up to μ·m·g of sideways force; exceed it and it
+    // slides wide off the line. We show required vs available force.
+    const R = 8; // corner radius (m)
+    const MU = 0.95, MASS = 2000;
+    // The ideal racing line (circle) drawn as dots.
+    const lineMat = new C3(0.25, 0.5, 0.8);
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const d = BABYLON.MeshBuilder.CreateSphere('ln' + i, { diameter: 0.18 }, scene);
+      d.position.set(Math.cos(a) * R, 0.1, Math.sin(a) * R);
+      const m = new BABYLON.StandardMaterial('lm' + i, scene); m.emissiveColor = lineMat; m.disableLighting = true; d.material = m;
+    }
+    // Car.
+    const carMat = new BABYLON.StandardMaterial('cm', scene); carMat.diffuseColor = new C3(0.12, 0.5, 0.42);
+    const car = BABYLON.MeshBuilder.CreateBox('car', { width: 1.4, height: 0.8, depth: 2.6 }, scene);
+    car.material = carMat;
+    // Force arrow (toward center) — scales with required centripetal force.
+    const arrowMat = new BABYLON.StandardMaterial('am', scene); arrowMat.emissiveColor = new C3(1, 0.4, 0.2); arrowMat.disableLighting = true;
+    const arrow = BABYLON.MeshBuilder.CreateCylinder('arr', { diameter: 0.25, height: 1, tessellation: 8 }, scene); arrow.material = arrowMat;
+    // Skid marks pool.
+    const skidMat = new BABYLON.StandardMaterial('sk', scene); skidMat.diffuseColor = new C3(0.02, 0.02, 0.02);
+    const skids = Array.from({ length: 30 }, () => { const s = BABYLON.MeshBuilder.CreateBox('sd', { width: 0.16, height: 0.02, depth: 0.5 }, scene); s.material = skidMat; s.setEnabled(false); return s; });
+    let skidIdx = 0;
+
+    let ang = 0, slide = 0;
+    scene.onBeforeRenderObservable.add(() => {
+      const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
+      const v = params.current.cornerMph * 0.44704;
+      const needed = (MASS * v * v) / R;       // required centripetal force (N)
+      const available = MU * MASS, G2 = 9.81;  // max grip force = μ·m·g
+      const grip = available * G2;
+      const overshoot = needed / grip;          // >1 means sliding wide
+      // Angular speed around the circle; slide pushes the car outward.
+      ang += (v / R) * dt;
+      slide += ((overshoot > 1 ? (overshoot - 1) * 3 : -slide) - slide * 0.0) * Math.min(1, dt * 2);
+      slide = Math.max(0, Math.min(6, slide));
+      const rr = R + slide;
+      car.position.set(Math.cos(ang) * rr, 0.4, Math.sin(ang) * rr);
+      car.rotation.y = -ang + (overshoot > 1 ? 0.5 : 0); // tail-out when sliding
+      // Centripetal arrow points from car toward center.
+      const inward = new BABYLON.Vector3(-Math.cos(ang), 0, -Math.sin(ang));
+      arrow.position = car.position.add(inward.scale(0.8)).add(new BABYLON.Vector3(0, 0.2, 0));
+      arrow.scaling.y = Math.min(4, needed / grip * 2 + 0.3);
+      arrow.rotation.z = Math.PI / 2; arrow.rotation.y = -ang + Math.PI / 2;
+      arrowMat.emissiveColor = overshoot > 1 ? new C3(1, 0.2, 0.15) : new C3(0.3, 0.8, 0.4);
+      if (overshoot > 1 && Math.random() < 0.6) { const s = skids[skidIdx % skids.length]; skidIdx++; s.setEnabled(true); s.position.copyFrom(car.position); s.position.y = 0.03; s.rotation.y = -ang; }
+      ui(() => setReadout({
+        a: `NEEDED FORCE|${(needed / 1000).toFixed(1)} kN`,
+        b: `GRIP LIMIT|${(grip / 1000).toFixed(1)} kN`,
+        c: overshoot > 1 ? 'STATUS|Too fast — sliding wide! 🚗💨' : 'STATUS|Holding the line ✅',
+      }));
+    });
+    return;
+  }
+
+  // inertia — Newton's first law: a moving mass resists stopping. Braking
+  // distance d = v²/(2·μ·g) grows with the SQUARE of speed and with mass-driven
+  // momentum p = m·v. Two identical brakes, heavier car stops later.
+  const MU = 0.8, G2 = 9.81;
+  const roadMat = new BABYLON.StandardMaterial('rm', scene); roadMat.diffuseColor = new C3(0.07, 0.08, 0.1);
+  const road = BABYLON.MeshBuilder.CreateGround('rd', { width: 8, height: 60 }, scene); road.material = roadMat; road.position.z = -10;
+  // Stop line at z = 0.
+  const lineMat2 = new BABYLON.StandardMaterial('lm2', scene); lineMat2.emissiveColor = new C3(0.9, 0.2, 0.2); lineMat2.disableLighting = true;
+  const stopLine = BABYLON.MeshBuilder.CreateBox('sl', { width: 8, height: 0.05, depth: 0.4 }, scene); stopLine.material = lineMat2; stopLine.position.set(0, 0.05, 0);
+  const carMat = new BABYLON.StandardMaterial('cm', scene); carMat.diffuseColor = new C3(0.12, 0.5, 0.42);
+  const car = BABYLON.MeshBuilder.CreateBox('car', { width: 1.6, height: 0.9, depth: 3 }, scene); car.material = carMat;
+  const arrowMat = new BABYLON.StandardMaterial('am', scene); arrowMat.emissiveColor = new C3(0.3, 0.6, 1); arrowMat.disableLighting = true;
+  const momentum = BABYLON.MeshBuilder.CreateCylinder('mo', { diameter: 0.3, height: 1, tessellation: 8 }, scene); momentum.material = arrowMat; momentum.rotation.x = Math.PI / 2;
+
+  let z = -28, v = 0, braking = false, settle = 0;
+  scene.onBeforeRenderObservable.add(() => {
+    const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
+    const mass = params.current.massKg;
+    const entry = params.current.speed * 0.44704; // entry speed from the shared speed slider
+    const stopDist = (entry * entry) / (2 * MU * G2); // m, independent of mass for ideal tires…
+    // …but we add a mass penalty to illustrate momentum/heavier = longer in practice.
+    const massPenalty = 1 + (mass - 1800) / 6000;
+    const realStop = stopDist * massPenalty;
+    if (z < -realStop) { v = entry; braking = false; } // cruising in
+    if (z >= -realStop && !braking && v > 0.2) braking = true;
+    if (braking) v = Math.max(0, v - (MU * G2 / massPenalty) * dt);
+    z += v * dt;
+    if (v <= 0.2 && braking) { settle += dt; if (settle > 1.4) { z = -28; v = entry; braking = false; settle = 0; } }
+    car.position.set(0, 0.45, z);
+    // Momentum arrow length = m·v (scaled).
+    const p = mass * v;
+    momentum.position.set(0, 0.9, z + 1.6 + Math.min(4, p / 12000));
+    momentum.scaling.y = Math.max(0.1, Math.min(8, p / 6000));
+    arrowMat.emissiveColor = braking ? new C3(1, 0.4, 0.2) : new C3(0.3, 0.6, 1);
+    const overshot = z > 0.5;
+    ui(() => setReadout({
+      a: `MOMENTUM|${(p / 1000).toFixed(0)} kN·s`,
+      b: `STOP DISTANCE|${realStop.toFixed(0)} m`,
+      c: overshot ? 'STATUS|Ran the stop line! ⚠️' : braking ? 'STATUS|Braking…' : 'STATUS|Cruising',
     }));
   });
 }
