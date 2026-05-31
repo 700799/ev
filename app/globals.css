@@ -77,26 +77,33 @@ h1, h2, h3 {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  font-size: 1.15rem;
+  flex: 0 0 auto;
   color: var(--text);
+  text-decoration: none;
 }
-.brand .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  border-radius: 11px;
   background: var(--accent);
+  box-shadow: 0 4px 14px rgba(90, 163, 146, 0.4);
 }
 .topnav {
   display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.topnav::-webkit-scrollbar { display: none; }
 .topnav a {
   color: var(--muted);
   font-weight: 600;
   font-size: 0.92rem;
+  white-space: nowrap;
 }
 .topnav a:hover {
   color: var(--text);

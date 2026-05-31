@@ -26,6 +26,7 @@ const TILES: Tile[] = [
   { href: '/guide/#badges', emoji: '🏆', label: 'Badges', sub: 'Level up as you learn' },
   { href: '/guide/#battery', emoji: '🔋', label: 'Battery 101', sub: '10 things + quiz' },
   { href: '/guide/#power', emoji: '⚡', label: 'Drains & Charges', sub: 'What moves the needle' },
+  { href: '/guide/#science-lab', emoji: '🔬', label: 'Science Lab', sub: '4 physics animations' },
   { href: '/guide/#compare-evs', emoji: '⚖️', label: 'Compare EVs', sub: 'Models & model years' },
   { href: '/guide/#wrong', emoji: '🛟', label: 'What Goes Wrong', sub: 'Complaints, real talk' },
   { href: '/articles/', emoji: '📰', label: 'Articles', sub: 'Fresh & trending' },

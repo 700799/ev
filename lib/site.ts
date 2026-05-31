@@ -28,6 +28,7 @@ export const NAV_SECTIONS: NavSection[] = [
   { id: 'calculators', label: 'Calculators', group: 'Tools' },
   { id: 'battery', label: '10 Battery Facts', group: 'Learn' },
   { id: 'science', label: 'The Science', group: 'Learn' },
+  { id: 'science-lab', label: 'Science Lab', group: 'Learn' },
   { id: 'power', label: 'Drains & Charges', group: 'Learn' },
   { id: 'performance', label: 'Performance Tips', group: 'Learn' },
   { id: 'driving', label: 'How to Drive', group: 'Learn' },
