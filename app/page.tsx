@@ -5,9 +5,17 @@ import StationFinderClient from '@/components/StationFinderClient';
 import TripPlannerClient from '@/components/TripPlannerClient';
 import Calculators from '@/components/Calculators';
 import ArticleList from '@/components/ArticleList';
+import BatteryFacts from '@/components/BatteryFacts';
+import BatteryQuiz from '@/components/BatteryQuiz';
+import ModelYearCompare from '@/components/ModelYearCompare';
+import BadgeShelf from '@/components/BadgeShelf';
+import ReadTracker from '@/components/ReadTracker';
+import Carousel from '@/components/Carousel';
+import PowerScenarios from '@/components/PowerScenarios';
 import { withBase, SITE } from '@/lib/site';
 import {
   batteryFacts,
+  batteryFactsAdvanced,
   sciencePoints,
   performanceTips,
   drivingPoints,
@@ -26,7 +34,6 @@ import {
 } from '@/data/content';
 import { evModels } from '@/data/evModels';
 import { popularArticles, freshArticles } from '@/data/articles';
-
 const proTechniques = [
   { title: 'Hypermiling the EV way', body: 'Anticipate stops far ahead and coast into regen rather than braking late. Smooth inputs beat fast ones for both range and tire life.' },
   { title: 'Master the charge curve', body: 'On road trips, arrive low (~10%) and leave at ~60–80% where charging is fastest. Multiple short stops beat one long top-up.' },
@@ -50,6 +57,7 @@ const tutorialSteps = [
 export default function Home() {
   return (
     <main>
+      <ReadTracker />
       {/* ---------------- HERO ---------------- */}
       <div className="hero">
         <div className="hero-grid">
@@ -102,14 +110,27 @@ export default function Home() {
         <Calculators />
       </Section>
 
+      {/* ---------------- BADGES / GAMIFICATION ---------------- */}
+      <Section
+        id="badges"
+        kicker="Level up"
+        title="Earn learning badges as you explore"
+        intro="Read sections, use the tools, customize the 3D car, and pass the quiz to unlock badges, rack up XP, and level up from Curious Driver to EV Guru. Your progress saves in this browser."
+      >
+        <BadgeShelf />
+      </Section>
+
       {/* ---------------- 10 BATTERY FACTS ---------------- */}
       <Section
         id="battery"
-        kicker="Learn"
+        kicker="Learn · beginner → advanced"
         title="10 things to know about battery & charging"
-        intro="Master these and your battery will stay healthy for years."
+        intro="Switch to Advanced for the beyond-beginner version — calendar aging, C-rates, lithium plating, cell balancing, and more — then test yourself with the quiz."
       >
-        <FactGrid facts={batteryFacts} cols={3} />
+        <BatteryFacts beginner={batteryFacts} advanced={batteryFactsAdvanced} />
+        <div style={{ marginTop: 24 }}>
+          <BatteryQuiz />
+        </div>
       </Section>
 
       {/* ---------------- SCIENCE (with 3D) ---------------- */}
@@ -130,6 +151,16 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </Section>
+
+      {/* ---------------- POWER SCENARIOS ---------------- */}
+      <Section
+        id="power"
+        kicker="Learn · interactive"
+        title="What drains — or charges — your battery"
+        intro="Pick a scenario to watch the power flow animate in real time, see the kW draining or gaining, and read why it happens. From a 0–60 launch to a long downhill that puts energy back."
+      >
+        <PowerScenarios />
       </Section>
 
       {/* ---------------- PERFORMANCE TIPS ---------------- */}
@@ -163,7 +194,7 @@ export default function Home() {
         title="Professional driving techniques"
         intro="Habits that pro EV drivers and efficiency-record holders rely on."
       >
-        <FactGrid facts={proTechniques} cols={3} />
+        <FactGrid facts={proTechniques} carousel />
       </Section>
 
       {/* ---------------- TUTORIAL ---------------- */}
@@ -259,6 +290,16 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ---------------- COMPARE MODEL YEARS ---------------- */}
+      <Section
+        id="model-years"
+        kicker="Compare"
+        title="Compare model years — same name, different car"
+        intro="A Tesla Model 3 from 2022 is a very different car from a 2024 'Highland'. Pick a model to see how range, price, and features changed year to year."
+      >
+        <ModelYearCompare />
+      </Section>
+
       {/* ---------------- FOREIGN vs US ---------------- */}
       <Section
         id="foreign"
@@ -266,7 +307,7 @@ export default function Home() {
         title="Foreign EVs vs US EVs"
         intro="The global picture, and what it means for American buyers."
       >
-        <FactGrid facts={foreignVsUs} cols={2} />
+        <FactGrid facts={foreignVsUs} carousel />
       </Section>
 
       {/* ---------------- NEW MODELS ---------------- */}
@@ -276,7 +317,7 @@ export default function Home() {
         title="New models: trucks, SUVs & semis"
         intro="The fast-expanding lineup, from work trucks to electric freight."
       >
-        <FactGrid facts={newModels} cols={2} />
+        <FactGrid facts={newModels} carousel />
       </Section>
 
       {/* ---------------- WHAT TO AVOID ---------------- */}
@@ -290,7 +331,7 @@ export default function Home() {
 
       {/* ---------------- WHAT CAN GO WRONG ---------------- */}
       <Section id="wrong" kicker="More" title="What can go wrong" intro="The real failure modes — and they are rarely the main battery.">
-        <FactGrid facts={whatCanGoWrong} cols={3} />
+        <FactGrid facts={whatCanGoWrong} carousel />
       </Section>
 
       {/* ---------------- NIGHTMARE SCENARIOS ---------------- */}
@@ -300,7 +341,7 @@ export default function Home() {
         title="Nightmare scenarios (and how to dodge them)"
         intro="The worst-case stories you hear about — and exactly how to avoid each one."
       >
-        <FactGrid facts={nightmareScenarios} cols={2} />
+        <FactGrid facts={nightmareScenarios} carousel />
       </Section>
 
       {/* ---------------- DEALS ---------------- */}
@@ -310,7 +351,7 @@ export default function Home() {
         title="Where to get the best deals"
         intro="Incentives, timing, and tactics that knock thousands off the price."
       >
-        <FactGrid facts={dealTips} cols={3} />
+        <FactGrid facts={dealTips} carousel />
       </Section>
 
       {/* ---------------- CHARGING TYPES ---------------- */}
@@ -350,7 +391,7 @@ export default function Home() {
         title="Latest EV features & the autonomous rollout"
         intro="Hands-free highways, NACS everywhere, bidirectional charging — and the Waymo-led robotaxi race."
       >
-        <FactGrid facts={latestFeatures} cols={3} />
+        <FactGrid facts={latestFeatures} carousel />
       </Section>
 
       {/* ---------------- FAQ ---------------- */}
@@ -375,8 +416,8 @@ export default function Home() {
         title="Fresh articles"
         intro="Our newest stories — always at the bottom, always up to date."
       >
-        <div className="grid cols-3">
-          {freshArticles.slice(0, 9).map((a) => (
+        <Carousel itemMinWidth={300}>
+          {freshArticles.slice(0, 12).map((a) => (
             <article className="card" key={a.id}>
               <span className="pill">{a.category}</span>
               <h3 style={{ margin: '8px 0 6px', fontSize: '1.02rem' }}>
@@ -389,7 +430,7 @@ export default function Home() {
               </div>
             </article>
           ))}
-        </div>
+        </Carousel>
         <div style={{ marginTop: 18, textAlign: 'center' }}>
           <a className="btn ghost" href={withBase('/articles/')}>Browse all articles →</a>
         </div>

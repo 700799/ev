@@ -22,17 +22,20 @@ export interface NavSection {
 }
 
 export const NAV_SECTIONS: NavSection[] = [
+  { id: 'badges', label: 'Badges & Progress', group: 'Tools' },
   { id: 'stations', label: 'Find Stations', group: 'Tools' },
   { id: 'trip', label: 'Trip Planner', group: 'Tools' },
   { id: 'calculators', label: 'Calculators', group: 'Tools' },
   { id: 'battery', label: '10 Battery Facts', group: 'Learn' },
   { id: 'science', label: 'The Science', group: 'Learn' },
+  { id: 'power', label: 'Drains & Charges', group: 'Learn' },
   { id: 'performance', label: 'Performance Tips', group: 'Learn' },
   { id: 'driving', label: 'How to Drive', group: 'Learn' },
   { id: 'pro-driving', label: 'Pro Techniques', group: 'Learn' },
   { id: 'tutorial', label: 'In-Depth Tutorial', group: 'Learn' },
   { id: 'compare-types', label: 'EV vs Hybrid vs Gas', group: 'Compare' },
   { id: 'compare-evs', label: 'Compare EVs', group: 'Compare' },
+  { id: 'model-years', label: 'Compare Model Years', group: 'Compare' },
   { id: 'foreign', label: 'Foreign vs US', group: 'Compare' },
   { id: 'new-models', label: 'New Models', group: 'Compare' },
   { id: 'avoid', label: 'What to Avoid', group: 'More' },

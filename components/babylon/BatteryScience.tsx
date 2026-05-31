@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
+import { useGame } from '../GameProvider';
 
 type Mode = 'charge' | 'discharge';
 
@@ -15,6 +16,7 @@ export default function BatteryScience() {
   const modeRef = useRef<Mode>('charge');
   const [mode, setMode] = useState<Mode>('charge');
   const [ready, setReady] = useState(false);
+  const { record } = useGame();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -112,6 +114,7 @@ export default function BatteryScience() {
     const next: Mode = mode === 'charge' ? 'discharge' : 'charge';
     setMode(next);
     modeRef.current = next;
+    record('3d:science');
   };
 
   return (

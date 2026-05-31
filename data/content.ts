@@ -55,7 +55,51 @@ export const batteryFacts: Fact[] = [
   },
 ];
 
-// 2. The science, lightly
+// 1b. Advanced ("beyond beginner") version of the battery facts
+export const batteryFactsAdvanced: Fact[] = [
+  {
+    title: '1. Calendar aging usually beats cycle aging',
+    body: 'For most drivers, time and average state of charge degrade the pack more than miles do. A cell parked at 90% in summer heat ages faster than one cycled daily between 30–70%. Optimize for average SoC and temperature, not just cycle count.',
+  },
+  {
+    title: '2. LFP’s flat voltage curve confuses the SoC meter',
+    body: 'Lithium iron phosphate has a very flat discharge curve, so the BMS struggles to estimate state of charge in the middle. That’s why makers tell LFP owners to charge to 100% weekly — it lets the BMS recalibrate the top reference point.',
+  },
+  {
+    title: '3. C-rate, not just kW, drives heat and wear',
+    body: 'Charging stress scales with C-rate (current relative to pack capacity). A 70 kWh pack at 150 kW is ~2.1C; the same 150 kW into a 100 kWh pack is 1.5C and gentler. Bigger packs fast-charge more comfortably for the same kW.',
+  },
+  {
+    title: '4. The charge curve is a thermal/anode-potential dance',
+    body: 'Tapering past ~50–80% isn’t arbitrary: as the anode fills, accepting more current risks lithium plating, so the BMS throttles power. Preconditioning and lower starting SoC keep you on the fat part of the curve longer.',
+  },
+  {
+    title: '5. Lithium plating is the cold-charging villain',
+    body: 'Fast-charging a cold cell can deposit metallic lithium on the anode (plating), permanently losing capacity and risking shorts. This is the real reason cold packs charge slowly — and why preconditioning matters beyond convenience.',
+  },
+  {
+    title: '6. Cell balancing happens near full charge',
+    body: 'Packs are hundreds of cells in series; tiny capacity differences drift over time. The BMS balances them (usually by bleeding the highest cells) mainly near the top of charge — another reason an occasional higher charge can be healthy.',
+  },
+  {
+    title: '7. SoH ≠ usable range, thanks to the buffer',
+    body: 'Makers hide a buffer above 100% and below 0%. Early “degradation” is often the buffer absorbing loss so your usable range holds, then range drops once the buffer is consumed. Read raw cell data, not just the range estimate.',
+  },
+  {
+    title: '8. Regen is capped by SoC, temp, and C-rate',
+    body: 'A full or cold battery can’t absorb regen — that’s why a freshly 100%-charged car coasts instead of braking, and why one-pedal feel changes with conditions. The pack limits charge current the same way it limits fast charging.',
+  },
+  {
+    title: '9. 800V cuts I²R losses, not just charge time',
+    body: 'Doubling voltage halves current for the same power, and resistive losses scale with current squared. 800V architectures run cooler, use thinner/lighter conductors, and sustain peak power longer — efficiency, not just bragging rights.',
+  },
+  {
+    title: '10. Thermal management is the real longevity lever',
+    body: 'Liquid-cooled packs that hold cells in a tight temperature window (and precondition for charging) routinely outlast passively cooled designs. When comparing EVs, the cooling strategy predicts long-term battery health better than chemistry alone.',
+  },
+];
+
+
 export const sciencePoints: Fact[] = [
   {
     title: 'How a lithium-ion cell works',

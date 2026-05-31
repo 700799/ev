@@ -561,3 +561,237 @@ ol.steps li p {
   display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Gamification: toasts + status chip ---------- */
+.toast-stack {
+  position: fixed;
+  top: 74px;
+  right: 18px;
+  z-index: 80;
+  display: grid;
+  gap: 10px;
+  max-width: 320px;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.3s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.toast-icon { font-size: 1.7rem; }
+.toast-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 800;
+}
+.toast-name { font-weight: 700; }
+
+.game-chip {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 14px 8px 10px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: var(--text);
+}
+.game-chip:hover { border-color: var(--accent); text-decoration: none; }
+.game-chip-trophy { font-size: 1.2rem; }
+.game-chip-body { display: grid; gap: 4px; min-width: 120px; }
+.game-chip-top { font-size: 0.8rem; font-weight: 700; }
+.game-chip-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.game-chip-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+@media (max-width: 560px) {
+  .game-chip { display: none; }
+}
+
+/* ---------- Horizontal carousel ---------- */
+.carousel {
+  position: relative;
+}
+.carousel-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.carousel-track::-webkit-scrollbar { height: 8px; }
+.carousel-track::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.carousel-track > * {
+  scroll-snap-align: start;
+  flex: 0 0 var(--item-min, 280px);
+  width: var(--item-min, 280px);
+}
+.carousel-btn {
+  position: absolute;
+  top: calc(50% - 22px);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+}
+.carousel-btn:hover { border-color: var(--accent); }
+.carousel-btn.left { left: -8px; }
+.carousel-btn.right { right: -8px; }
+@media (max-width: 700px) {
+  .carousel-track > * { flex-basis: 80%; width: 80%; }
+  .carousel-btn { display: none; }
+}
+
+/* ---------- Power scenario visualizer ---------- */
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+.scenario-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scenario-chip.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.power-stage { display: flex; flex-direction: column; gap: 16px; }
+.power-flow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.power-end { text-align: center; display: grid; gap: 6px; justify-items: center; }
+.mini-batt {
+  width: 56px;
+  height: 30px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+}
+.mini-batt::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 9px;
+  width: 4px;
+  height: 10px;
+  background: var(--border);
+  border-radius: 0 2px 2px 0;
+}
+.mini-batt > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.batt-drain { animation: batt-drain 2.4s ease-in-out infinite; }
+.batt-charge { animation: batt-charge 2.4s ease-in-out infinite; }
+@keyframes batt-drain { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes batt-charge { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+.power-lane {
+  position: relative;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.flow-dot {
+  position: absolute;
+  top: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes flow-ltr { from { left: -4%; } to { left: 104%; } }
+@keyframes flow-rtl { from { left: 104%; } to { left: -4%; } }
+
+.power-gauge { margin-top: 4px; }
+.power-gauge-track {
+  position: relative;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.power-gauge-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--muted);
+  opacity: 0.6;
+}
+.power-gauge-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transition: width 0.5s ease, left 0.5s ease, background 0.3s ease;
+}
+.power-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+}

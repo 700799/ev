@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Fact } from '@/data/content';
+import Carousel from './Carousel';
 
 export function Section({
   id,
@@ -28,15 +29,22 @@ export function Section({
   );
 }
 
-export function FactGrid({ facts, cols = 3 }: { facts: Fact[]; cols?: 2 | 3 | 4 }) {
-  return (
-    <div className={`grid cols-${cols}`}>
-      {facts.map((f) => (
-        <div className="card" key={f.title}>
-          <h3>{f.title}</h3>
-          <p>{f.body}</p>
-        </div>
-      ))}
+export function FactGrid({
+  facts,
+  cols = 3,
+  carousel = false,
+}: {
+  facts: Fact[];
+  cols?: 2 | 3 | 4;
+  carousel?: boolean;
+}) {
+  const cards = facts.map((f) => (
+    <div className="card" key={f.title}>
+      <h3>{f.title}</h3>
+      <p>{f.body}</p>
     </div>
-  );
+  ));
+
+  if (carousel) return <Carousel>{cards}</Carousel>;
+  return <div className={`grid cols-${cols}`}>{cards}</div>;
 }

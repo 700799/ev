@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useGame } from './GameProvider';
 
 type Tab = 'savings' | 'charge' | 'solar';
 
@@ -45,6 +46,8 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
 
 /* ---- Savings (annual + lifetime EV vs gas) ---- */
 function SavingsCalc() {
+  const { record } = useGame();
+  useEffect(() => { record('calc:savings'); }, [record]);
   const [miles, setMiles] = useState('12000');
   const [eff, setEff] = useState('3.5'); // mi/kWh
   const [rate, setRate] = useState('0.18'); // $/kWh
@@ -92,6 +95,8 @@ function SavingsCalc() {
 
 /* ---- Charge & trip cost ---- */
 function ChargeCalc() {
+  const { record } = useGame();
+  useEffect(() => { record('calc:charge'); }, [record]);
   const [battery, setBattery] = useState('75'); // kWh
   const [from, setFrom] = useState('20'); // %
   const [to, setTo] = useState('80'); // %
@@ -162,6 +167,8 @@ function ChargeCalc() {
 
 /* ---- Solar payback ---- */
 function SolarCalc() {
+  const { record } = useGame();
+  useEffect(() => { record('calc:solar'); }, [record]);
   const [size, setSize] = useState('8'); // kW
   const [costPerW, setCostPerW] = useState('3.00');
   const [sun, setSun] = useState('5'); // peak sun hours/day

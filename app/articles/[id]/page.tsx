@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { articles, freshArticles } from '@/data/articles';
 import { getArticleBody } from '@/data/articleBodies';
 import { withBase } from '@/lib/site';
+import ArticleReadTracker from '@/components/ArticleReadTracker';
 
 export function generateStaticParams() {
   return articles.map((a) => ({ id: a.id }));
@@ -32,6 +33,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
 
   return (
     <main>
+      <ArticleReadTracker id={article.id} />
       <article style={{ maxWidth: 760, margin: '0 auto', padding: '48px 20px 16px' }}>
         <a href={withBase('/articles/')} className="small">← All articles</a>
         <div style={{ margin: '14px 0 6px' }}>
