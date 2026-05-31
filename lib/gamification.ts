@@ -30,6 +30,7 @@ export const BADGES: Badge[] = [
   { id: 'body-swapper', name: 'Body Swapper', icon: '🚙', desc: 'Switch the 3D body style.', xp: 40, check: (e) => e.has('3d:bodytype') },
   { id: 'battery-scientist', name: 'Battery Scientist', icon: '🔬', desc: 'Toggle the lithium-ion scene.', xp: 60, check: (e) => e.has('3d:science') },
   { id: 'energy-detective', name: 'Energy Detective', icon: '🔋', desc: 'Explore what drains and charges the battery.', xp: 60, check: (e) => e.has('feature:power') },
+  { id: 'troubleshooter', name: 'Troubleshooter', icon: '🔧', desc: 'Dig into the mid-advanced failure modes.', xp: 60, check: (e) => e.has('failures:advanced') },
   { id: 'beyond-beginner', name: 'Beyond Beginner', icon: '🎓', desc: 'Switch the battery facts to Advanced.', xp: 60, check: (e) => e.has('facts:advanced') },
   { id: 'quiz-whiz', name: 'Quiz Whiz', icon: '🧠', desc: 'Pass the advanced battery quiz.', xp: 100, check: (e) => e.has('quiz:battery:pass') },
   { id: 'year-analyst', name: 'Year Analyst', icon: '📅', desc: 'Compare EV model years.', xp: 60, check: (e) => e.has('feature:modelyears') },

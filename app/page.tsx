@@ -12,6 +12,7 @@ import BadgeShelf from '@/components/BadgeShelf';
 import ReadTracker from '@/components/ReadTracker';
 import Carousel from '@/components/Carousel';
 import PowerScenarios from '@/components/PowerScenarios';
+import WhatGoesWrong from '@/components/WhatGoesWrong';
 import { withBase, SITE } from '@/lib/site';
 import {
   batteryFacts,
@@ -22,6 +23,8 @@ import {
   evVsRest,
   thingsToAvoid,
   whatCanGoWrong,
+  whatCanGoWrongAdvanced,
+  biggestComplaints,
   dealTips,
   nightmareScenarios,
   chargingTypes,
@@ -330,8 +333,13 @@ export default function Home() {
       </Section>
 
       {/* ---------------- WHAT CAN GO WRONG ---------------- */}
-      <Section id="wrong" kicker="More" title="What can go wrong" intro="The real failure modes — and they are rarely the main battery.">
-        <FactGrid facts={whatCanGoWrong} carousel />
+      <Section
+        id="wrong"
+        kicker="More · beginner → mid-advanced"
+        title="What can go wrong & the biggest complaints"
+        intro="Switch to Mid-Advanced for the deeper failure modes — charge-curve disappointment, network reliability, phantom drain, 12V stranding, heat-pump gaps, depreciation whiplash — plus the biggest owner complaints ranked and reality-checked."
+      >
+        <WhatGoesWrong basic={whatCanGoWrong} advanced={whatCanGoWrongAdvanced} complaints={biggestComplaints} />
       </Section>
 
       {/* ---------------- NIGHTMARE SCENARIOS ---------------- */}
