@@ -5,11 +5,10 @@ import * as BABYLON from '@babylonjs/core';
 import { useGame } from '../GameProvider';
 import { withBase } from '@/lib/site';
 import { buildCar, createCarMaterials, type CarConfig } from '@/lib/carBuilder';
-import type { BodyType, WheelStyle } from '@/data/configSpecs';
+import { computeStats, type BodyType, type WheelStyle } from '@/data/configSpecs';
 
 const STORE_KEY = 'ev-build-v1';
 const LANES = [-3.4, 0, 3.4];
-const ROAD_LEN = 90;
 const DISTRICT_LEN = 700;
 
 const DISTRICTS = [
@@ -21,8 +20,9 @@ const DISTRICTS = [
   { name: 'Mountain Pass', emoji: '🏔️', ground: [0.1, 0.12, 0.14], sky: [0.08, 0.11, 0.16], bld: [0.13, 0.15, 0.18], neon: [0.75, 0.85, 1] },
 ];
 
-type Kind = 'cone' | 'barrier' | 'car' | 'coin' | 'charge';
-interface Ent { mesh: BABYLON.TransformNode; kind: Kind; lane: number; z: number; hit?: boolean; spin?: number; }
+type Kind = 'car' | 'coin' | 'charge';
+interface Ent { mesh: BABYLON.TransformNode; kind: Kind; lane: number; z: number; hit?: boolean; v?: number; }
+type Light = { mesh: BABYLON.TransformNode; bulbs: BABYLON.StandardMaterial[]; z: number; state: 'green' | 'yellow' | 'red'; timer: number; ran?: boolean };
 
 function haptic(p: number | number[]) { try { navigator.vibrate?.(p); } catch { /* ignore */ } }
 
@@ -36,25 +36,23 @@ function loadConfig(): CarConfig {
 }
 
 /**
- * Explore drive with challenge: the car auto-cruises a winding road that bends
- * left and right (pseudo-3D curvature), with obstacles to dodge (cones,
- * barriers, traffic), coins + charge to collect, and a battery you must keep
- * alive. Hitting things costs battery and spins you; running flat ends the run.
+ * Explore drive: your built car cruises a winding city. Dodge other cars, obey
+ * traffic lights (run a red and a garbage truck T-bones you), drift (which
+ * slides you across lanes), and grab coins/charge. A live stats panel shows
+ * speed, drag coefficient, and battery drain/gain.
  */
 export default function ExploreDrive() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { record } = useGame();
   const [ready, setReady] = useState(false);
   const [district, setDistrict] = useState(DISTRICTS[0].name);
-  const [speedMph, setSpeedMph] = useState(0);
-  const [miles, setMiles] = useState(0);
-  const [coins, setCoins] = useState(0);
-  const [battery, setBattery] = useState(100);
-  const [driftPct, setDriftPct] = useState(0);
-  const [passed, setPassed] = useState(0);
   const [over, setOver] = useState(false);
+  const [overMsg, setOverMsg] = useState('Out of charge!');
+  const [hud, setHud] = useState({ mph: 0, miles: 0, coins: 0, battery: 100, drift: 0, batRate: 0, light: 'green' as Light['state'] });
 
-  const ctrl = useRef({ boost: false, brake: false, drift: false, lane: 1, targetX: 0 });
+  const cfg = useRef<CarConfig>(loadConfig());
+  const specs = computeStats(cfg.current.body, cfg.current.wheel, cfg.current.accessories);
+  const ctrl = useRef({ boost: false, brake: false, drift: false, lane: 1 });
   const stepRef = useRef<(d: number) => void>(() => {});
   const restartRef = useRef<() => void>(() => {});
 
@@ -70,13 +68,11 @@ export default function ExploreDrive() {
 
     const camera = new BABYLON.UniversalCamera('cam', new BABYLON.Vector3(0, 7, 12), scene);
     const baseFov = camera.fov;
-
     const hemi = new BABYLON.HemisphericLight('h', new BABYLON.Vector3(0, 1, 0.1), scene); hemi.intensity = 0.9;
     const sun = new BABYLON.DirectionalLight('s', new BABYLON.Vector3(-0.4, -1, 0.3), scene); sun.intensity = 0.85;
     const glow = new BABYLON.GlowLayer('g', scene); glow.intensity = 0.6;
 
-    // Curvature: a value that slowly drifts so the road snakes. Each object's
-    // apparent X is offset by curve * depth² — classic pseudo-3D bend.
+    // Winding road: apparent X offset by depth (classic pseudo-3D bend).
     const bendOf = (z: number) => curve * z * z * 0.0016 + drift * -z * 0.04;
     let curve = 0, curveTarget = 0, curveTimer = 0, drift = 0;
 
@@ -87,83 +83,94 @@ export default function ExploreDrive() {
 
     const roadMat = new BABYLON.StandardMaterial('rm', scene);
     roadMat.diffuseColor = new BABYLON.Color3(0.05, 0.055, 0.07); roadMat.specularColor = new BABYLON.Color3(0, 0, 0);
-    // Many short road segments so the strip can bend smoothly.
     const segs: BABYLON.Mesh[] = [];
     const SEG = 6, SEG_COUNT = 26;
-    for (let i = 0; i < SEG_COUNT; i++) {
-      const s = BABYLON.MeshBuilder.CreateGround('rs' + i, { width: 13, height: SEG }, scene);
-      s.material = roadMat; s.position.z = -i * SEG; segs.push(s);
-    }
-    const markMat = new BABYLON.StandardMaterial('mk', scene);
-    markMat.emissiveColor = new BABYLON.Color3(0.55, 0.55, 0.4); markMat.disableLighting = true;
-    const marks: BABYLON.Mesh[] = [];
-    for (let i = 0; i < 70; i++) {
-      const m = BABYLON.MeshBuilder.CreateBox('mk' + i, { width: 0.2, height: 0.02, depth: 1.6 }, scene);
-      m.material = markMat; (m as any)._lane = i % 2 ? 1.7 : -1.7; m.position.z = -i * 3.5; marks.push(m);
-    }
+    for (let i = 0; i < SEG_COUNT; i++) { const s = BABYLON.MeshBuilder.CreateGround('rs' + i, { width: 13, height: SEG }, scene); s.material = roadMat; s.position.z = -i * SEG; segs.push(s); }
+    const markMat = new BABYLON.StandardMaterial('mk', scene); markMat.emissiveColor = new BABYLON.Color3(0.55, 0.55, 0.4); markMat.disableLighting = true;
+    const marks: { mesh: BABYLON.Mesh; lane: number }[] = [];
+    for (let i = 0; i < 70; i++) { const m = BABYLON.MeshBuilder.CreateBox('mk' + i, { width: 0.2, height: 0.02, depth: 1.6 }, scene); m.material = markMat; m.position.z = -i * 3.5; marks.push({ mesh: m, lane: i % 2 ? 1.7 : -1.7 }); }
 
     const bldMat = new BABYLON.StandardMaterial('bm', scene);
     bldMat.diffuseColor = new BABYLON.Color3(0.1, 0.11, 0.16); bldMat.specularColor = new BABYLON.Color3(0.04, 0.04, 0.05);
-    interface Prop { mesh: BABYLON.Mesh; neon?: BABYLON.StandardMaterial; baseX: number; }
-    const props: Prop[] = [];
+    const props: { mesh: BABYLON.Mesh; neon?: BABYLON.StandardMaterial; baseX: number }[] = [];
     const SPAN = 70, PCOUNT = 60;
     for (let i = 0; i < PCOUNT; i++) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const depthRow = (i % 4) < 2 ? 0 : 1;
+      const side = i % 2 === 0 ? -1 : 1; const depthRow = (i % 4) < 2 ? 0 : 1;
       const h = 7 + Math.random() * 26, w = 4 + Math.random() * 5;
-      const b = BABYLON.MeshBuilder.CreateBox('b' + i, { width: w, height: h, depth: w }, scene);
-      b.material = bldMat;
+      const b = BABYLON.MeshBuilder.CreateBox('b' + i, { width: w, height: h, depth: w }, scene); b.material = bldMat;
       const baseX = side * (9 + depthRow * 9 + Math.random() * 4);
       b.position.set(baseX, h / 2, -((i / 2) | 0) * (SPAN / (PCOUNT / 2)) - 4);
       let neon: BABYLON.StandardMaterial | undefined;
       if (i % 2 === 0) {
-        neon = new BABYLON.StandardMaterial('n' + i, scene);
-        neon.emissiveColor = new BABYLON.Color3(0.3, 0.6, 1); neon.disableLighting = true;
-        const sign = BABYLON.MeshBuilder.CreateBox('s' + i, { width: 0.3, height: h * 0.6, depth: w * 0.5 }, scene);
-        sign.material = neon; sign.parent = b; sign.position = new BABYLON.Vector3(-side * (w / 2 + 0.15), 0, 0);
+        neon = new BABYLON.StandardMaterial('n' + i, scene); neon.emissiveColor = new BABYLON.Color3(0.3, 0.6, 1); neon.disableLighting = true;
+        const sign = BABYLON.MeshBuilder.CreateBox('s' + i, { width: 0.3, height: h * 0.6, depth: w * 0.5 }, scene); sign.material = neon; sign.parent = b; sign.position = new BABYLON.Vector3(-side * (w / 2 + 0.15), 0, 0);
       }
       props.push({ mesh: b, neon, baseX });
     }
 
-    // Obstacle/collectible materials + factories.
     const mk = (c: BABYLON.Color3, em?: BABYLON.Color3, noLight = false) => { const m = new BABYLON.StandardMaterial('m' + Math.random(), scene); m.diffuseColor = c; if (em) m.emissiveColor = em; if (noLight) m.disableLighting = true; return m; };
-    const orange = mk(new BABYLON.Color3(0.85, 0.35, 0.05), new BABYLON.Color3(0.25, 0.08, 0));
     const white = mk(new BABYLON.Color3(0.95, 0.95, 0.95));
-    const dark = mk(new BABYLON.Color3(0.06, 0.06, 0.08));
-    const trafficMat = mk(new BABYLON.Color3(0.7, 0.2, 0.25));
-    const coinMat = mk(new BABYLON.Color3(0.9, 0.75, 0.1), new BABYLON.Color3(0.8, 0.6, 0.05), true);
-    const chgMat = mk(new BABYLON.Color3(0.1, 0.5, 0.4), new BABYLON.Color3(0.15, 0.85, 0.6), true);
     const tireMat = mk(new BABYLON.Color3(0.02, 0.02, 0.03));
     const glassMat = mk(new BABYLON.Color3(0.05, 0.1, 0.15)); glassMat.alpha = 0.6;
+    const coinMat = mk(new BABYLON.Color3(0.9, 0.75, 0.1), new BABYLON.Color3(0.8, 0.6, 0.05), true);
+    const chgMat = mk(new BABYLON.Color3(0.1, 0.5, 0.4), new BABYLON.Color3(0.15, 0.85, 0.6), true);
+    const CAR_COLORS = [new BABYLON.Color3(0.7, 0.2, 0.25), new BABYLON.Color3(0.2, 0.35, 0.7), new BABYLON.Color3(0.7, 0.6, 0.2), new BABYLON.Color3(0.5, 0.5, 0.55), new BABYLON.Color3(0.3, 0.5, 0.4)];
 
-    const makeEnt = (kind: Kind): BABYLON.TransformNode => {
+    const makeCar = (): BABYLON.TransformNode => {
       const n = new BABYLON.TransformNode('e', scene);
-      if (kind === 'cone') { const c = BABYLON.MeshBuilder.CreateCylinder('c', { diameterTop: 0, diameterBottom: 0.9, height: 1.2, tessellation: 14 }, scene); c.material = orange; c.position.y = 0.6; c.parent = n; }
-      else if (kind === 'barrier') { for (let i = 0; i < 3; i++) { const b = BABYLON.MeshBuilder.CreateBox('br', { width: 2.6, height: 0.28, depth: 0.28 }, scene); b.material = i % 2 ? white : orange; b.position.y = 0.5 + i * 0.45; b.parent = n; } }
-      else if (kind === 'car') { const b = BABYLON.MeshBuilder.CreateBox('cb', { width: 2, height: 0.7, depth: 3.4 }, scene); b.material = trafficMat; b.position.y = 0.7; b.parent = n; const cab = BABYLON.MeshBuilder.CreateBox('cc', { width: 1.7, height: 0.55, depth: 1.6 }, scene); cab.material = glassMat; cab.position.set(0, 1.25, -0.2); cab.parent = n; for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as [number, number][]) { const w = BABYLON.MeshBuilder.CreateCylinder('w', { diameter: 0.7, height: 0.3, tessellation: 12 }, scene); w.rotation.z = Math.PI / 2; w.position.set(x, 0.35, z); w.material = tireMat; w.parent = n; } }
-      else if (kind === 'coin') { const c = BABYLON.MeshBuilder.CreateCylinder('cn', { diameter: 0.9, height: 0.12, tessellation: 18 }, scene); c.rotation.x = Math.PI / 2; c.position.y = 1.1; c.material = coinMat; c.parent = n; }
-      else { const bolt = BABYLON.MeshBuilder.CreateCylinder('bo', { diameter: 1, height: 0.22, tessellation: 6 }, scene); bolt.position.y = 1.2; bolt.material = chgMat; bolt.parent = n; const ring = BABYLON.MeshBuilder.CreateTorus('rg', { diameter: 1.4, thickness: 0.08, tessellation: 20 }, scene); ring.rotation.x = Math.PI / 2; ring.position.y = 1.2; ring.material = chgMat; ring.parent = n; }
+      const body = mk(CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)]);
+      const b = BABYLON.MeshBuilder.CreateBox('cb', { width: 2, height: 0.7, depth: 3.4 }, scene); b.material = body; b.position.y = 0.7; b.parent = n;
+      const cab = BABYLON.MeshBuilder.CreateBox('cc', { width: 1.7, height: 0.55, depth: 1.6 }, scene); cab.material = glassMat; cab.position.set(0, 1.25, -0.2); cab.parent = n;
+      // Tail lights so you can read it as a car ahead of you.
+      for (const x of [0.7, -0.7]) { const t = BABYLON.MeshBuilder.CreateBox('tl', { width: 0.3, height: 0.18, depth: 0.1 }, scene); t.material = mk(new BABYLON.Color3(0.6, 0.05, 0.05), new BABYLON.Color3(0.7, 0.05, 0.05), true); t.position.set(x, 0.8, 1.75); t.parent = n; }
+      for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as [number, number][]) { const w = BABYLON.MeshBuilder.CreateCylinder('w', { diameter: 0.7, height: 0.3, tessellation: 12 }, scene); w.rotation.z = Math.PI / 2; w.position.set(x, 0.35, z); w.material = tireMat; w.parent = n; }
       return n;
     };
-    const SPAWN: { k: Kind; w: number }[] = [{ k: 'cone', w: 16 }, { k: 'barrier', w: 12 }, { k: 'car', w: 14 }, { k: 'coin', w: 22 }, { k: 'charge', w: 12 }];
-    const totalW = SPAWN.reduce((s, r) => s + r.w, 0);
-    const pick = (): Kind => { let r = Math.random() * totalW; for (const row of SPAWN) if ((r -= row.w) <= 0) return row.k; return 'cone'; };
+    const makeCoin = (): BABYLON.TransformNode => { const n = new BABYLON.TransformNode('e', scene); const c = BABYLON.MeshBuilder.CreateCylinder('cn', { diameter: 0.9, height: 0.12, tessellation: 18 }, scene); c.rotation.x = Math.PI / 2; c.position.y = 1.1; c.material = coinMat; c.parent = n; return n; };
+    const makeCharge = (): BABYLON.TransformNode => { const n = new BABYLON.TransformNode('e', scene); const bolt = BABYLON.MeshBuilder.CreateCylinder('bo', { diameter: 1, height: 0.22, tessellation: 6 }, scene); bolt.position.y = 1.2; bolt.material = chgMat; bolt.parent = n; const ring = BABYLON.MeshBuilder.CreateTorus('rg', { diameter: 1.4, thickness: 0.08, tessellation: 20 }, scene); ring.rotation.x = Math.PI / 2; ring.position.y = 1.2; ring.material = chgMat; ring.parent = n; return n; };
+
+    // Traffic light over the road (pole + 3 bulbs).
+    const makeLight = (): Light => {
+      const n = new BABYLON.TransformNode('lt', scene);
+      const pole = BABYLON.MeshBuilder.CreateBox('pp', { width: 0.3, height: 7, depth: 0.3 }, scene); pole.material = mk(new BABYLON.Color3(0.1, 0.1, 0.12)); pole.position.set(6, 3.5, 0); pole.parent = n;
+      const arm = BABYLON.MeshBuilder.CreateBox('pa', { width: 6.5, height: 0.25, depth: 0.25 }, scene); arm.material = pole.material; arm.position.set(3, 6.6, 0); arm.parent = n;
+      const housing = BABYLON.MeshBuilder.CreateBox('ph', { width: 0.7, height: 2, depth: 0.5 }, scene); housing.material = mk(new BABYLON.Color3(0.08, 0.08, 0.1)); housing.position.set(0, 6, 0); housing.parent = n;
+      const bulbs: BABYLON.StandardMaterial[] = [];
+      ['r', 'y', 'g'].forEach((c, i) => { const m = mk(new BABYLON.Color3(0.1, 0.1, 0.1), undefined, true); const s = BABYLON.MeshBuilder.CreateSphere('b' + c, { diameter: 0.5 }, scene); s.material = m; s.position.set(0, 6.6 - i * 0.6, -0.3); s.parent = n; bulbs.push(m); });
+      return { mesh: n, bulbs, z: -150, state: 'green', timer: 3 + Math.random() * 3 };
+    };
+    const setLight = (l: Light) => {
+      const on = (i: number, col: BABYLON.Color3) => { l.bulbs[i].emissiveColor = col; l.bulbs[i].diffuseColor = col; };
+      on(0, new BABYLON.Color3(0.12, 0.02, 0.02)); on(1, new BABYLON.Color3(0.12, 0.1, 0.02)); on(2, new BABYLON.Color3(0.02, 0.12, 0.04));
+      if (l.state === 'red') on(0, new BABYLON.Color3(1, 0.1, 0.1));
+      else if (l.state === 'yellow') on(1, new BABYLON.Color3(1, 0.75, 0.1));
+      else on(2, new BABYLON.Color3(0.2, 1, 0.3));
+    };
+
+    // Garbage truck that T-bones you for running a red.
+    const truck = new BABYLON.TransformNode('truck', scene);
+    const truckBody = BABYLON.MeshBuilder.CreateBox('tb', { width: 3, height: 3, depth: 7 }, scene); truckBody.material = mk(new BABYLON.Color3(0.2, 0.45, 0.3)); truckBody.position.y = 1.6; truckBody.parent = truck;
+    const truckCab = BABYLON.MeshBuilder.CreateBox('tc', { width: 3, height: 2, depth: 2 }, scene); truckCab.material = mk(new BABYLON.Color3(0.15, 0.35, 0.25)); truckCab.position.set(0, 1.2, -4); truckCab.parent = truck;
+    truck.rotation.y = Math.PI / 2; truck.setEnabled(false);
+    let truckActive = false, truckX = -18;
+
     let ents: Ent[] = [];
-    const clearEnts = () => { for (const e of ents) e.mesh.dispose(); ents = []; };
+    let lights: Light[] = [];
+    const clearAll = () => { for (const e of ents) e.mesh.dispose(); ents = []; for (const l of lights) l.mesh.dispose(); lights = []; };
 
     const mats = createCarMaterials(scene);
-    const cfg = loadConfig();
-    const built = buildCar(scene, mats, cfg);
+    const built = buildCar(scene, mats, cfg.current);
     built.node.parent = new BABYLON.TransformNode('carRoot', scene);
     const carRoot = built.node.parent as BABYLON.TransformNode;
+    built.node.scaling.setAll(0.62);
     const ug = built.underglow?.material as BABYLON.StandardMaterial | undefined;
 
-    // Drift tire-smoke puffs trailing the rear wheels.
+    // Drift smoke.
     const smokeMat = mk(new BABYLON.Color3(0.7, 0.7, 0.75), new BABYLON.Color3(0.25, 0.25, 0.3), true);
     const smoke: BABYLON.Mesh[] = [];
-    for (let i = 0; i < 12; i++) { const p = BABYLON.MeshBuilder.CreateSphere('sm' + i, { diameter: 0.7, segments: 6 }, scene); p.material = smokeMat; p.setEnabled(false); smoke.push(p); }
+    for (let i = 0; i < 14; i++) { const p = BABYLON.MeshBuilder.CreateSphere('sm' + i, { diameter: 0.7, segments: 6 }, scene); p.material = smokeMat.clone('sm' + i); p.setEnabled(false); smoke.push(p); }
     let smokeIdx = 0;
-    const puff = (x: number, z: number) => { const p = smoke[smokeIdx % smoke.length]; smokeIdx++; p.setEnabled(true); p.position.set(x, 0.4, z); p.scaling.setAll(0.5 + Math.random() * 0.5); (p as any)._life = 0.5; };
+    const puff = (x: number, z: number) => { const p = smoke[smokeIdx++ % smoke.length]; p.setEnabled(true); p.position.set(x, 0.4, z); p.scaling.setAll(0.5 + Math.random() * 0.4); (p as { _life?: number })._life = 0.5; };
 
     const applyDistrict = (d: typeof DISTRICTS[number]) => {
       scene.clearColor = new BABYLON.Color4(d.sky[0], d.sky[1], d.sky[2], 1);
@@ -174,16 +181,26 @@ export default function ExploreDrive() {
     };
     applyDistrict(DISTRICTS[0]);
 
-    let distance = 0, curDist = -1, speed = 30, batt = 100, coinCount = 0, spin = 0, spawnTimer = 0, playing = true;
-    let driftYaw = 0, driftCharge = 0, boostBurst = 0, passed = 0;
+    let distance = 0, curDist = -1, speed = 30, batt = 100, prevBatt = 100, coins = 0, slideX = 0, slideV = 0;
+    let carX = 0, spawnTimer = 0, lightTimer = 5, playing = true, driftCharge = 0, boostBurst = 0, nearLight: Light | null = null;
+
+    const endRun = (msg: string) => { playing = false; setOver(true); setOverMsg(msg); haptic([40, 90, 40]); record('feature:explore'); };
 
     const reset = () => {
-      clearEnts(); distance = 0; curDist = -1; speed = 30; batt = 100; coinCount = 0; spin = 0; spawnTimer = 0; playing = true;
-      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0; driftYaw = 0; driftCharge = 0; boostBurst = 0; passed = 0;
-      ctrl.current.lane = 1; ctrl.current.targetX = 0; carRoot.position.x = 0;
-      setOver(false); setBattery(100); setCoins(0); setMiles(0); setDriftPct(0); setPassed(0);
+      clearAll(); distance = 0; curDist = -1; speed = 30; batt = 100; prevBatt = 100; coins = 0; slideX = 0; slideV = 0; carX = 0;
+      spawnTimer = 0; lightTimer = 5; playing = true; driftCharge = 0; boostBurst = 0; nearLight = null; truckActive = false; truck.setEnabled(false);
+      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0; ctrl.current.lane = 1;
+      setOver(false);
     };
     restartRef.current = reset;
+
+    const step = (dir: number) => {
+      if (!playing) return;
+      // dir −1 = LEFT (toward lower X / left of screen), +1 = RIGHT.
+      ctrl.current.lane = Math.max(0, Math.min(2, ctrl.current.lane + dir));
+      haptic(8);
+    };
+    stepRef.current = step;
 
     scene.onBeforeRenderObservable.add(() => {
       const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
@@ -191,95 +208,124 @@ export default function ExploreDrive() {
 
       if (playing) {
         if (boostBurst > 0) boostBurst = Math.max(0, boostBurst - dt);
-        const target = (c.boost || boostBurst > 0) ? 74 : c.brake ? 14 : 42;
-        speed += (target - speed) * Math.min(1, dt * 1.5);
+        const boosting = c.boost || boostBurst > 0;
+        const target = boosting ? 74 : c.brake ? 12 : 42;
+        speed += (target - speed) * Math.min(1, dt * 1.6);
         distance += speed * dt;
-        batt = Math.max(0, batt - dt * ((c.boost || boostBurst > 0) ? 3.4 : 2.0));
-        // Evolve curvature so the road winds.
+        batt = Math.max(0, batt - dt * (boosting ? 3.4 : c.brake ? 1.0 : 2.0));
+
         curveTimer -= dt;
         if (curveTimer <= 0) { curveTarget = (Math.random() - 0.5) * 2.2; curveTimer = 2.5 + Math.random() * 2.5; }
         curve += (curveTarget - curve) * Math.min(1, dt * 0.7);
         drift += (curveTarget * 6 - drift) * Math.min(1, dt * 0.5);
 
-        // Drifting: while held and moving, the car slides sideways (toward the
-        // current bend), kicks out a big yaw + smoke, and banks a boost charge.
-        if (c.drift && speed > 18) {
-          const slideDir = Math.sign(curve || (ctrl.current.lane - 1) || 1);
-          driftYaw += (slideDir * 0.6 - driftYaw) * Math.min(1, dt * 4);
+        // Drifting: real lateral slide across the road + smoke + boost charge.
+        if (c.drift && speed > 16) {
+          const dirSign = (LANES[c.lane] < carX ? -1 : 1) || 1;
+          slideV += dirSign * 14 * dt;
           driftCharge = Math.min(1, driftCharge + dt * 0.6);
-          if (Math.random() < 0.5) { puff(carRoot.position.x - 0.7, carRoot.position.z + 1.4); puff(carRoot.position.x + 0.7, carRoot.position.z + 1.4); }
+          if (Math.random() < 0.6) { puff(carX - 0.8, carRoot.position.z + 1.4); puff(carX + 0.8, carRoot.position.z + 1.4); }
         } else {
-          driftYaw += (0 - driftYaw) * Math.min(1, dt * 5);
-          // Releasing a built-up drift unleashes a boost burst.
           if (driftCharge > 0.25) { boostBurst = 0.4 + driftCharge * 1.2; haptic([10, 30, 10]); }
           driftCharge = Math.max(0, driftCharge - dt * 1.5);
         }
       }
-      // Fade smoke puffs.
-      for (const p of smoke) { if (!p.isEnabled()) continue; const life = ((p as any)._life -= dt); p.scaling.addInPlaceFromFloats(dt * 2, dt * 2, dt * 2); p.position.z += speed * dt; (p.material as BABYLON.StandardMaterial).alpha = Math.max(0, life * 1.6); if (life <= 0) p.setEnabled(false); }
 
-      // Scroll + bend road segments.
-      for (const s of segs) { s.position.z += speed * dt; if (s.position.z > SEG) s.position.z -= SEG * SEG_COUNT; s.position.x = bendOf(s.position.z); }
-      for (const m of marks) { m.position.z += speed * dt; if (m.position.z > 10) m.position.z -= 70 * 3.5; m.position.x = (m as any)._lane + bendOf(m.position.z); }
-      for (const p of props) { p.mesh.position.z += speed * dt; if (p.mesh.position.z > 14) p.mesh.position.z -= SPAN; p.mesh.position.x = p.baseX + bendOf(p.mesh.position.z); }
-
-      // Spawn obstacles/collectibles.
-      if (playing) {
-        spawnTimer -= dt;
-        if (spawnTimer <= 0) { const k = pick(); const lane = Math.floor(Math.random() * 3); const e: Ent = { mesh: makeEnt(k), kind: k, lane, z: -150 }; ents.push(e); spawnTimer = Math.max(0.45, 1.1 - distance * 0.00002); }
-      }
-
-      // Car lane position (plus the road's bend at the car's depth ~0).
-      const laneX = LANES[c.lane];
-      carRoot.position.x += (laneX - carRoot.position.x) * Math.min(1, dt * 8);
-      if (spin > 0) { spin = Math.max(0, spin - dt); built.node.rotation.y = -Math.PI / 2 + (1 - spin / 0.7) * Math.PI * 2; }
-      else built.node.rotation.y = -Math.PI / 2 + (laneX - carRoot.position.x) * 0.05 + driftYaw;
-      built.node.rotation.z = spin > 0 ? 0 : (carRoot.position.x - laneX) * 0.1 - driftYaw * 0.15;
-      built.node.scaling.setAll(0.62);
+      // Car X = lane target + drift slide (clamped to road width).
+      const laneTarget = LANES[c.lane];
+      slideV *= 0.9; slideX += slideV * dt;
+      carX += ((laneTarget + slideX) - carX) * Math.min(1, dt * 9);
+      carX = Math.max(-5.2, Math.min(5.2, carX));
+      if (Math.abs(slideX) > 0.05) slideX *= 0.96; else slideX = 0;
+      carRoot.position.x = carX;
+      built.node.rotation.y = -Math.PI / 2 + (laneTarget - carX) * 0.06 + slideV * 0.04;
+      built.node.rotation.z = (carX - laneTarget) * 0.08;
       for (const w of built.wheelMeshes) w.rotation.x += speed * dt * 0.5;
       if (ug) ug.alpha = 0.6 + Math.sin(performance.now() / 250) * 0.25;
 
-      // Advance entities + collisions. Traffic moves slower (forward) so you
-      // overtake it; static hazards/collectibles approach at full closing speed.
+      // Scroll + bend the world.
+      for (const s of segs) { s.position.z += speed * dt; if (s.position.z > SEG) s.position.z -= SEG * SEG_COUNT; s.position.x = bendOf(s.position.z); }
+      for (const m of marks) { m.mesh.position.z += speed * dt; if (m.mesh.position.z > 10) m.mesh.position.z -= 70 * 3.5; m.mesh.position.x = m.lane + bendOf(m.mesh.position.z); }
+      for (const p of props) { p.mesh.position.z += speed * dt; if (p.mesh.position.z > 14) p.mesh.position.z -= SPAN; p.mesh.position.x = p.baseX + bendOf(p.mesh.position.z); }
+      for (const p of smoke) { if (!p.isEnabled()) continue; const o = p as { _life?: number }; o._life = (o._life || 0) - dt; p.scaling.addInPlaceFromFloats(dt * 2, dt * 2, dt * 2); p.position.z += speed * dt; (p.material as BABYLON.StandardMaterial).alpha = Math.max(0, (o._life || 0) * 1.6); if ((o._life || 0) <= 0) p.setEnabled(false); }
+
+      if (playing) {
+        // Spawn traffic + collectibles (mostly cars to dodge).
+        spawnTimer -= dt;
+        if (spawnTimer <= 0) {
+          const r = Math.random(); const lane = Math.floor(Math.random() * 3);
+          const kind: Kind = r < 0.55 ? 'car' : r < 0.82 ? 'coin' : 'charge';
+          const mesh = kind === 'car' ? makeCar() : kind === 'coin' ? makeCoin() : makeCharge();
+          mesh.position.set(LANES[lane], 0, -150);
+          ents.push({ mesh, kind, lane, z: -150, v: kind === 'car' ? 22 + Math.random() * 8 : 0 });
+          spawnTimer = Math.max(0.5, 1.2 - distance * 0.00002);
+        }
+        // Spawn a traffic light occasionally.
+        lightTimer -= dt;
+        if (lightTimer <= 0) { const l = makeLight(); setLight(l); l.mesh.position.z = -150; lights.push(l); lightTimer = 7 + Math.random() * 5; }
+      }
+
+      // Advance traffic; collide (you must dodge — same lane = crash).
       for (const e of ents) {
-        const closing = e.kind === 'car' ? speed - 24 : speed; // 24 m/s traffic
-        e.z += closing * dt; e.mesh.position.z = e.z;
-        e.mesh.position.x = LANES[e.lane] + bendOf(e.z);
+        const closing = e.kind === 'car' ? speed - (e.v || 0) : speed;
+        e.z += closing * dt; e.mesh.position.z = e.z; e.mesh.position.x = LANES[e.lane] + bendOf(e.z);
         if (e.kind === 'coin' || e.kind === 'charge') { e.mesh.rotation.y += dt * 3; e.mesh.position.y = Math.sin(performance.now() / 300 + e.lane) * 0.15; }
-        if (e.kind === 'car' && !e.hit && !(e as any)._passed && e.z > 3) { (e as any)._passed = true; passed += 1; coinCount += 1; }
-        if (!e.hit && playing && e.z > -2 && e.z < 2 && Math.abs(e.mesh.position.x - carRoot.position.x) < 1.7) {
+        if (!e.hit && playing && e.z > -2.2 && e.z < 2.2 && Math.abs(e.mesh.position.x - carX) < 1.7) {
           e.hit = true;
-          if (e.kind === 'coin') { coinCount += 1; batt = Math.min(100, batt + 1); haptic(6); e.mesh.dispose(); }
-          else if (e.kind === 'charge') { batt = Math.min(100, batt + 18); coinCount += 2; haptic(10); e.mesh.dispose(); }
-          else { batt = Math.max(0, batt - 18); speed *= 0.5; spin = 0.7; haptic([20, 60, 20]); e.mesh.dispose(); }
+          if (e.kind === 'coin') { coins += 1; batt = Math.min(100, batt + 1); haptic(6); e.mesh.dispose(); }
+          else if (e.kind === 'charge') { batt = Math.min(100, batt + 18); coins += 2; haptic(10); e.mesh.dispose(); }
+          else { endRun('💥 Crashed into a car!'); }
         }
       }
-      ents = ents.filter((e) => { if (e.hit) return false; if (e.z > 16) { e.mesh.dispose(); return false; } return true; });
+      ents = ents.filter((e) => { if (e.hit && e.kind !== 'car') return false; if (e.z > 16) { e.mesh.dispose(); return false; } return true; });
 
-      if (playing && batt <= 0) { playing = false; setOver(true); haptic([40, 80, 40]); record('feature:explore'); }
+      // Traffic lights: advance, cycle, and enforce red.
+      nearLight = null;
+      for (const l of lights) {
+        l.z += speed * dt; l.mesh.position.z = l.z; l.mesh.position.x = bendOf(l.z);
+        l.timer -= dt;
+        if (l.timer <= 0) {
+          if (l.state === 'green') { l.state = 'yellow'; l.timer = 1.4; }
+          else if (l.state === 'yellow') { l.state = 'red'; l.timer = 3.2; }
+          else { l.state = 'green'; l.timer = 4 + Math.random() * 3; }
+          setLight(l);
+        }
+        if (l.z > -22 && l.z < 6) nearLight = l;
+        // Crossing the line on red while moving → T-bone.
+        if (!l.ran && l.state === 'red' && l.z > -1 && l.z < 2 && speed > 6) {
+          l.ran = true; truckActive = true; truck.setEnabled(true); truckX = -18; truck.position.set(-18, 0, l.z);
+        }
+      }
+      lights = lights.filter((l) => { if (l.z > 14) { l.mesh.dispose(); return false; } return true; });
 
-      // Chase cam that leans into the curve.
+      // Garbage truck slams across the intersection.
+      if (truckActive) {
+        truckX += 40 * dt; truck.position.x = truckX; truck.position.z += speed * dt * 0.3;
+        if (Math.abs(truckX - carX) < 2.6 && playing) endRun('🚛 T-boned by a garbage truck!');
+        if (truckX > 16) { truckActive = false; truck.setEnabled(false); }
+      }
+
+      if (playing && batt <= 0) endRun('🔋 Out of charge!');
+
+      // Camera leans into the curve.
       const camZ = c.boost ? 9.5 : 12;
-      const lead = bendOf(-30) * 0.5;
-      camera.position.x += ((carRoot.position.x + lead) - camera.position.x) * Math.min(1, dt * 3);
+      camera.position.x += ((carX + bendOf(-30) * 0.5) - camera.position.x) * Math.min(1, dt * 3);
       camera.position.y += (7 - camera.position.y) * Math.min(1, dt * 3);
       camera.position.z += ((carRoot.position.z + camZ) - camera.position.z) * Math.min(1, dt * 3);
       camera.fov += ((c.boost ? baseFov * 1.2 : baseFov) - camera.fov) * Math.min(1, dt * 4);
-      camera.setTarget(new BABYLON.Vector3(carRoot.position.x + bendOf(-14), 1.5, -14));
+      camera.setTarget(new BABYLON.Vector3(carX + bendOf(-14), 1.5, -14));
 
       const idx = Math.floor(distance / DISTRICT_LEN) % DISTRICTS.length;
       if (idx !== curDist) { curDist = idx; applyDistrict(DISTRICTS[idx]); setDistrict(DISTRICTS[idx].name); }
 
-      if (Math.floor(performance.now() / 150) % 2 === 0) {
-        setSpeedMph(Math.round(speed * 2.237)); setMiles(Number((distance / 1609.34).toFixed(2)));
-        setBattery(Math.round(batt)); setCoins(coinCount); setDriftPct(Math.round(driftCharge * 100)); setPassed(passed);
+      if (Math.floor(performance.now() / 120) % 2 === 0) {
+        const rate = (batt - prevBatt) / Math.max(dt, 0.001); prevBatt = batt;
+        setHud({ mph: Math.round(speed * 2.237), miles: Number((distance / 1609.34).toFixed(2)), coins, battery: Math.round(batt), drift: Math.round(driftCharge * 100), batRate: rate, light: nearLight ? nearLight.state : 'green' });
       }
     });
 
     engine.runRenderLoop(() => scene.render());
 
-    const step = (dir: number) => { ctrl.current.lane = Math.max(0, Math.min(2, ctrl.current.lane + dir)); ctrl.current.targetX = LANES[ctrl.current.lane]; haptic(8); };
-    stepRef.current = step;
     const setKey = (e: KeyboardEvent, on: boolean) => {
       const k = e.key.toLowerCase();
       if (k === 'arrowleft' || k === 'a') { if (on) step(-1); e.preventDefault(); }
@@ -302,11 +348,12 @@ export default function ExploreDrive() {
   }, []);
 
   const press = (key: 'boost' | 'brake' | 'drift', on: boolean) => () => { ctrl.current[key] = on; };
-  const battColor = battery < 25 ? 'var(--danger)' : battery < 55 ? 'var(--warn)' : 'var(--accent)';
+  const battColor = hud.battery < 25 ? 'var(--danger)' : hud.battery < 55 ? 'var(--warn)' : 'var(--accent)';
+  const lightColor = hud.light === 'red' ? '#ff5c5c' : hud.light === 'yellow' ? '#ffcc44' : '#4ade80';
 
   return (
-    <div className="canvas-frame" style={{ minHeight: 480 }}>
-      <canvas ref={canvasRef} style={{ width: '100%', height: '480px', display: 'block', touchAction: 'none' }} />
+    <div className="canvas-frame" style={{ minHeight: 520 }}>
+      <canvas ref={canvasRef} style={{ width: '100%', height: '520px', display: 'block', touchAction: 'none' }} />
 
       {!ready && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
@@ -314,51 +361,52 @@ export default function ExploreDrive() {
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: 12, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', gap: 8, pointerEvents: 'none', flexWrap: 'wrap' }}>
-        <div style={hudBox}><span className="small muted">{DISTRICTS.find((d) => d.name === district)?.emoji} District</span><div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{district}</div></div>
-        <div style={hudBox}><span className="small muted">🪙 Coins</span><div style={{ fontWeight: 800, color: 'var(--warn)' }}>{coins}</div></div>
-        <div style={hudBox}><span className="small muted">🏁 Passed</span><div style={{ fontWeight: 800 }}>{passed}</div></div>
-        <div style={{ ...hudBox, minWidth: 96 }}><span className="small muted">Battery</span><div style={{ height: 9, borderRadius: 6, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginTop: 4 }}><div style={{ width: `${battery}%`, height: '100%', background: battColor }} /></div></div>
-        <div style={hudBox}><span className="small muted">Speed</span><div style={{ fontWeight: 800, color: 'var(--accent)' }}>{speedMph}</div></div>
+      {/* Top bar: district + light state */}
+      <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', justifyContent: 'space-between', gap: 8, pointerEvents: 'none' }}>
+        <div style={hudBox}><span className="small muted">{DISTRICTS.find((d) => d.name === district)?.emoji} {district}</span></div>
+        <div style={{ ...hudBox, color: lightColor, fontWeight: 800 }}>● {hud.light.toUpperCase()}</div>
+      </div>
+
+      {/* Stats panel (corner) */}
+      <div style={statsPanel}>
+        <div style={statRow}><span className="muted small">Speed</span><strong style={{ color: 'var(--accent)' }}>{hud.mph} mph</strong></div>
+        <div style={statRow}><span className="muted small">Battery</span><strong style={{ color: battColor }}>{hud.battery}%</strong></div>
+        <div style={statRow}><span className="muted small">{hud.batRate >= 0 ? 'Gain' : 'Drain'}</span><strong style={{ color: hud.batRate >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{hud.batRate >= 0 ? '+' : ''}{hud.batRate.toFixed(1)}%/s</strong></div>
+        <div style={statRow}><span className="muted small">Drag Cd</span><strong>{specs.cd.toFixed(3)}</strong></div>
+        <div style={statRow}><span className="muted small">Range</span><strong>{specs.rangeMi} mi</strong></div>
+        <div style={statRow}><span className="muted small">Miles</span><strong style={{ color: 'var(--accent-2)' }}>{hud.miles}</strong></div>
+        <div style={statRow}><span className="muted small">🪙 Coins</span><strong style={{ color: 'var(--warn)' }}>{hud.coins}</strong></div>
       </div>
 
       {over && (
-        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(8,11,17,0.8)', backdropFilter: 'blur(3px)' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(8,11,17,0.82)', backdropFilter: 'blur(3px)' }}>
           <div style={{ textAlign: 'center', padding: 20 }}>
-            <div style={{ fontSize: '2.4rem' }}>🔋</div>
-            <h3 style={{ margin: '6px 0' }}>Out of charge!</h3>
-            <p className="muted">You drove <strong style={{ color: 'var(--accent-2)' }}>{miles} mi</strong>, passed <strong>{passed}</strong> cars, and grabbed <strong style={{ color: 'var(--warn)' }}>{coins}</strong> coins.</p>
+            <div style={{ fontSize: '2.4rem' }}>{overMsg.split(' ')[0]}</div>
+            <h3 style={{ margin: '6px 0' }}>{overMsg.replace(/^\S+\s/, '')}</h3>
+            <p className="muted">You drove <strong style={{ color: 'var(--accent-2)' }}>{hud.miles} mi</strong> and grabbed <strong style={{ color: 'var(--warn)' }}>{hud.coins}</strong> coins.</p>
             <button className="btn primary" style={{ marginTop: 12 }} onClick={() => restartRef.current()}>↻ Drive again</button>
           </div>
         </div>
       )}
 
-      <a className="btn ghost" href={withBase('/build/')} style={{ position: 'absolute', right: 12, top: 70, padding: '6px 12px' }}>← Edit build</a>
+      <a className="btn ghost" href={withBase('/build/')} style={{ position: 'absolute', right: 10, bottom: 86, padding: '5px 11px', fontSize: '0.8rem' }}>← Edit build</a>
 
-      <div style={{ position: 'absolute', bottom: 14, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button style={ctrlBtn} onClick={() => stepRef.current(-1)} aria-label="Move left">‹</button>
-          <button style={ctrlBtn} onClick={() => stepRef.current(1)} aria-label="Move right">›</button>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            style={{ ...ctrlBtn, fontSize: '0.82rem', position: 'relative', overflow: 'hidden', borderColor: driftPct > 25 ? 'var(--accent)' : 'var(--border)' }}
-            onPointerDown={press('drift', true)} onPointerUp={press('drift', false)} onPointerLeave={press('drift', false)} aria-label="Drift"
-          >
-            DRIFT
-            <span style={{ position: 'absolute', left: 0, bottom: 0, height: 4, width: `${driftPct}%`, background: 'var(--accent)' }} />
-          </button>
-          <button style={{ ...ctrlBtn, fontSize: '0.82rem' }} onPointerDown={press('brake', true)} onPointerUp={press('brake', false)} onPointerLeave={press('brake', false)} aria-label="Brake">BRAKE</button>
-          <button style={{ ...ctrlBtn, background: 'var(--accent)', color: '#06140f', fontSize: '0.82rem' }} onPointerDown={press('boost', true)} onPointerUp={press('boost', false)} onPointerLeave={press('boost', false)} aria-label="Boost">BOOST</button>
-        </div>
-      </div>
-
-      <div style={{ position: 'absolute', left: 12, bottom: 92, pointerEvents: 'none' }} className="small muted">
-        Winding road — dodge 🚧 obstacles, pass 🚗 traffic, hold DRIFT around corners for a boost!
+      {/* Single wrapping control bar so every button is always visible */}
+      <div style={controlBar}>
+        <button style={ctrlBtn} onPointerDown={(e) => { e.preventDefault(); stepRef.current(-1); }} aria-label="Left">‹ Left</button>
+        <button style={{ ...ctrlBtn, position: 'relative', overflow: 'hidden', borderColor: hud.drift > 25 ? 'var(--accent)' : 'var(--border)' }} onPointerDown={press('drift', true)} onPointerUp={press('drift', false)} onPointerLeave={press('drift', false)} aria-label="Drift">
+          DRIFT<span style={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${hud.drift}%`, background: 'var(--accent)' }} />
+        </button>
+        <button style={ctrlBtn} onPointerDown={press('brake', true)} onPointerUp={press('brake', false)} onPointerLeave={press('brake', false)} aria-label="Brake">BRAKE</button>
+        <button style={{ ...ctrlBtn, background: 'var(--accent)', color: '#06140f' }} onPointerDown={press('boost', true)} onPointerUp={press('boost', false)} onPointerLeave={press('boost', false)} aria-label="Boost">BOOST</button>
+        <button style={ctrlBtn} onPointerDown={(e) => { e.preventDefault(); stepRef.current(1); }} aria-label="Right">Right ›</button>
       </div>
     </div>
   );
 }
 
-const hudBox: React.CSSProperties = { background: 'rgba(10,14,20,0.78)', border: '1px solid var(--border)', borderRadius: 10, padding: '5px 10px' };
-const ctrlBtn: React.CSSProperties = { width: 66, height: 60, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(19,28,43,0.85)', color: 'var(--text)', fontSize: '1.8rem', fontWeight: 800, cursor: 'pointer', touchAction: 'none' };
+const hudBox: React.CSSProperties = { background: 'rgba(10,14,20,0.78)', border: '1px solid var(--border)', borderRadius: 10, padding: '5px 10px', fontSize: '0.85rem' };
+const statsPanel: React.CSSProperties = { position: 'absolute', top: 48, right: 10, width: 140, background: 'rgba(10,14,20,0.8)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 10px', display: 'grid', gap: 4, pointerEvents: 'none' };
+const statRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontSize: '0.82rem' };
+const controlBar: React.CSSProperties = { position: 'absolute', bottom: 12, left: 10, right: 10, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' };
+const ctrlBtn: React.CSSProperties = { minWidth: 60, height: 52, padding: '0 12px', borderRadius: 14, border: '1px solid var(--border)', background: 'rgba(19,28,43,0.9)', color: 'var(--text)', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', touchAction: 'none' };
