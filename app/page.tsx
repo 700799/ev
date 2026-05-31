@@ -17,11 +17,11 @@ interface Tile {
 // Each tile opens one tool/section full-screen. Tools are standalone routes;
 // learn/compare tiles deep-link into the single guide page via its anchors.
 const TILES: Tile[] = [
-  { href: '/stations/', emoji: '🔌', label: 'Find Chargers', sub: 'Stations near your ZIP', accent: true },
+  { href: '/play/', emoji: '🏎️', label: 'Play EV Dodge', sub: 'Drive, dodge & charge — start here!', accent: true },
+  { href: '/stations/', emoji: '🔌', label: 'Find Chargers', sub: 'Stations near your ZIP' },
   { href: '/trip-planner/', emoji: '🗺️', label: 'Trip Planner', sub: 'Route + chargers' },
   { href: '/calculators/', emoji: '🧮', label: 'Calculators', sub: 'Savings · charge · solar' },
-  { href: '/build/', emoji: '🛠️', label: 'Build Your EV', sub: '3D, 15 add-ons' },
-  { href: '/play/', emoji: '🏎️', label: 'EV Dodge', sub: 'Drive & dodge game' },
+  { href: '/build/', emoji: '🛠️', label: 'Build Your EV', sub: '3D + budget & specs' },
   { href: '/guide/#badges', emoji: '🏆', label: 'Badges', sub: 'Level up as you learn' },
   { href: '/guide/#battery', emoji: '🔋', label: 'Battery 101', sub: '10 things + quiz' },
   { href: '/guide/#power', emoji: '⚡', label: 'Drains & Charges', sub: 'What moves the needle' },

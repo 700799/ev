@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useGame } from '../GameProvider';
-
-type BodyType = 'sedan' | 'suv' | 'pickup';
-type WheelStyle = 'sport' | 'aero' | 'turbine' | 'offroad' | 'gold';
+import { computeStats, BODY_SPECS, WHEEL_SPECS, ACCESSORY_SPECS, type BodyType, type WheelStyle } from '@/data/configSpecs';
 
 interface Config {
   body: BodyType;
@@ -67,6 +65,8 @@ export default function Configurator() {
   const [paint, setPaint] = useState(PAINTS[0].hex);
   const [wheel, setWheel] = useState<WheelStyle>('sport');
   const [accessories, setAccessories] = useState<Set<string>>(new Set(['roofrack']));
+
+  const stats = useMemo(() => computeStats(body, wheel, accessories), [body, wheel, accessories]);
 
   // (Re)build whenever config changes.
   useEffect(() => {
@@ -468,7 +468,7 @@ export default function Configurator() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
               {BODIES.map((b) => (
                 <button key={b.id} className={`btn ${body === b.id ? 'primary' : 'ghost'}`} style={{ padding: '7px 12px' }} onClick={() => { setBody(b.id); record('feature:configurator'); }}>
-                  {b.label}
+                  {b.label} <span style={{ opacity: 0.7, fontSize: '0.78em' }}>${(BODY_SPECS[b.id].price / 1000).toFixed(0)}k</span>
                 </button>
               ))}
             </div>
@@ -494,7 +494,7 @@ export default function Configurator() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
               {WHEELS.map((w) => (
                 <button key={w.id} className={`btn ${wheel === w.id ? 'primary' : 'ghost'}`} style={{ padding: '6px 11px', fontSize: '0.84rem' }} onClick={() => { setWheel(w.id); record('feature:configurator'); }}>
-                  {w.label}
+                  {w.label} <span style={{ opacity: 0.7 }}>{WHEEL_SPECS[w.id].cost ? `+$${WHEEL_SPECS[w.id].cost}` : 'incl.'}</span>
                 </button>
               ))}
             </div>
@@ -508,6 +508,7 @@ export default function Configurator() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
               {ACCESSORIES.map((a) => {
                 const on = accessories.has(a.id);
+                const spec = ACCESSORY_SPECS[a.id];
                 return (
                   <button
                     key={a.id}
@@ -515,8 +516,9 @@ export default function Configurator() {
                     className={`btn ${on ? 'primary' : 'ghost'}`}
                     style={{ padding: '6px 11px', fontSize: '0.82rem' }}
                     aria-pressed={on}
+                    title={`+$${spec.cost} · +${spec.weightKg}kg${spec.cdDelta > 0 ? ` · +${spec.cdDelta.toFixed(3)} drag` : ''}`}
                   >
-                    {on ? '✓ ' : '+ '}{a.label}
+                    {on ? '✓ ' : '+ '}{a.label} <span style={{ opacity: 0.7 }}>${spec.cost}</span>
                   </button>
                 );
               })}
@@ -527,6 +529,78 @@ export default function Configurator() {
           </div>
         </div>
       </div>
+
+      {/* Budget + physics impact panel */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+          <div className="num">YOUR BUILD — BUDGET &amp; IMPACT</div>
+          <div className="result-strong">${stats.price.toLocaleString()}</div>
+        </div>
+        <p className="muted small" style={{ margin: '4px 0 12px' }}>
+          Add-ons: <strong>+${stats.accessoryCost.toLocaleString()}</strong> · added weight{' '}
+          <strong>+{stats.accessoryWeight} kg</strong>. Every accessory costs money and adds weight or aerodynamic
+          drag, which trims range and dulls acceleration and cornering.
+        </p>
+
+        <div className="grid cols-4">
+          <div className="card">
+            <div className="num">RANGE</div>
+            <div className="result-strong" style={{ color: rangeColor(stats.rangeMi, stats.baseRangeMi) }}>{stats.rangeMi} mi</div>
+            <p className="small muted" style={{ margin: 0 }}>
+              {deltaLabel(stats.rangeMi - stats.baseRangeMi, 'mi')} vs stock · {stats.whPerMile} Wh/mi @ 65 mph
+            </p>
+          </div>
+          <div className="card">
+            <div className="num">DRAG (Cd)</div>
+            <div className="result-strong">{stats.cd.toFixed(3)}</div>
+            <p className="small muted" style={{ margin: 0 }}>Drag coefficient · lower slips through air better</p>
+          </div>
+          <div className="card">
+            <div className="num">WEIGHT</div>
+            <div className="result-strong">{stats.weightKg.toLocaleString()} kg</div>
+            <p className="small muted" style={{ margin: 0 }}>Curb weight with add-ons</p>
+          </div>
+          <div className="card">
+            <div className="num">0–60 MPH</div>
+            <div className="result-strong" style={{ color: stats.zeroToSixty > stats.baseZeroToSixty + 0.05 ? 'var(--warn)' : 'var(--accent)' }}>{stats.zeroToSixty}s</div>
+            <p className="small muted" style={{ margin: 0 }}>{deltaLabel(stats.zeroToSixty - stats.baseZeroToSixty, 's', true)} vs stock</p>
+          </div>
+          <div className="card">
+            <div className="num">CORNERING GRIP</div>
+            <div className="result-strong">{stats.grip.toFixed(2)} g</div>
+            <p className="small muted" style={{ margin: 0 }}>Peak lateral grip · taller/heavier setups slide sooner</p>
+          </div>
+          <div className="card">
+            <div className="num">SAFE TURN SPEED</div>
+            <div className="result-strong">{stats.cornerMph} mph</div>
+            <p className="small muted" style={{ margin: 0 }}>Through a tight 50 m bend before losing grip</p>
+          </div>
+          <div className="card" style={{ gridColumn: 'span 2' }}>
+            <div className="num">RANGE vs STOCK</div>
+            <div style={{ height: 12, borderRadius: 8, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 8 }}>
+              <div style={{ width: `${Math.min(100, (stats.rangeMi / stats.baseRangeMi) * 100)}%`, height: '100%', background: rangeColor(stats.rangeMi, stats.baseRangeMi), transition: 'width 0.4s ease' }} />
+            </div>
+            <p className="small muted" style={{ margin: '8px 0 0' }}>
+              Stock {stats.baseRangeMi} mi → your build {stats.rangeMi} mi. Drag matters most at highway speed; weight
+              matters most for acceleration, braking, and tire wear.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
+}
+
+function deltaLabel(d: number, unit: string, inverse = false) {
+  if (Math.abs(d) < (unit === 's' ? 0.05 : 0.5)) return 'no change';
+  const sign = d > 0 ? '+' : '';
+  const good = inverse ? d < 0 : d > 0;
+  const arrow = good ? '▲' : '▼';
+  return `${arrow} ${sign}${unit === 's' ? d.toFixed(1) : Math.round(d)} ${unit}`;
+}
+
+function rangeColor(range: number, base: number) {
+  if (range >= base - 1) return 'var(--accent)';
+  if (range >= base * 0.9) return 'var(--warn)';
+  return 'var(--danger)';
 }
