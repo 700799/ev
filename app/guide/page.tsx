@@ -1,6 +1,7 @@
 import { Section, FactGrid } from '@/components/Section';
 import HeroSceneClient from '@/components/babylon/HeroSceneClient';
 import BatteryScienceClient from '@/components/babylon/BatteryScienceClient';
+import ScienceLabClient from '@/components/babylon/ScienceLabClient';
 import StationFinderClient from '@/components/StationFinderClient';
 import TripPlannerClient from '@/components/TripPlannerClient';
 import Calculators from '@/components/Calculators';
@@ -157,6 +158,16 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </Section>
+
+      {/* ---------------- SCIENCE LAB (4 animations) ---------------- */}
+      <Section
+        id="science-lab"
+        kicker="Learn · interactive lab"
+        title="Science lab: four animations you can play with"
+        intro="Real, physics-based demos — regenerative braking energy recovery, aerodynamic drag rising with the square of speed, the DC fast-charge taper curve, and battery thermal management with coolant flow. Drag sliders and orbit each scene."
+      >
+        <ScienceLabClient />
       </Section>
 
       {/* ---------------- POWER SCENARIOS ---------------- */}

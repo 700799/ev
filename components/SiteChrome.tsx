@@ -25,9 +25,8 @@ export default function SiteChrome() {
     <>
       <header className="topbar">
         <div className="topbar-inner">
-          <a className="brand" href={withBase('/')}>
-            <span className="dot" />
-            {SITE.name}
+          <a className="brand" href={withBase('/')} aria-label={SITE.name} title={SITE.name}>
+            <span className="brand-logo">⚡</span>
           </a>
           <nav className="topnav">
             <a href={withBase('/stations/')}>Stations</a>
