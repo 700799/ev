@@ -38,8 +38,20 @@ and free, key-less maps.
 - TypeScript, plain CSS design system (no runtime CSS framework)
 - Babylon.js (`@babylonjs/core`) for 3D, lazy-loaded client-side
 - Leaflet + react-leaflet for maps, lazy-loaded client-side
-- Free, no-API-key data: OpenStreetMap **Nominatim** (geocoding),
-  **Overpass** (charging stations), and **OSRM** (routing)
+- Charger data: **Open Charge Map** (pricing, power, operator & operational
+  status) with automatic fallback to OpenStreetMap **Overpass**; geocoding via
+  **Nominatim**; routing via **OSRM** — all free
+- Per-article detail pages are statically generated (`/articles/[id]`)
+
+## Optional configuration
+
+Open Charge Map works without a key (rate-limited). For higher limits, grab a
+free key at [openchargemap.org](https://openchargemap.org) and set it before
+building:
+
+```bash
+NEXT_PUBLIC_OCM_KEY=your_key npm run build
+```
 
 ## Develop
 
