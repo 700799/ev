@@ -52,7 +52,9 @@ export default function ExploreDrive() {
 
   const cfg = useRef<CarConfig>(loadConfig());
   const specs = computeStats(cfg.current.body, cfg.current.wheel, cfg.current.accessories);
-  const ctrl = useRef({ boost: false, brake: false, drift: false, lane: 1 });
+  const ctrl = useRef({ boost: false, brake: false, drift: false, steer: 0, dragging: false });
+  const [tilt, setTilt] = useState(false);
+  const tiltRef = useRef(false);
   const stepRef = useRef<(d: number) => void>(() => {});
   const restartRef = useRef<() => void>(() => {});
 
@@ -196,8 +198,8 @@ export default function ExploreDrive() {
 
     const step = (dir: number) => {
       if (!playing) return;
-      // dir −1 = LEFT (toward lower X / left of screen), +1 = RIGHT.
-      ctrl.current.lane = Math.max(0, Math.min(2, ctrl.current.lane + dir));
+      // dir −1 = LEFT, +1 = RIGHT. Nudge the continuous steer target.
+      ctrl.current.steer = Math.max(-5, Math.min(5, ctrl.current.steer + dir * 3.4));
       haptic(8);
     };
     stepRef.current = step;
@@ -221,7 +223,7 @@ export default function ExploreDrive() {
 
         // Drifting: real lateral slide across the road + smoke + boost charge.
         if (c.drift && speed > 16) {
-          const dirSign = (LANES[c.lane] < carX ? -1 : 1) || 1;
+          const dirSign = (c.steer < carX ? -1 : 1) || 1;
           slideV += dirSign * 14 * dt;
           driftCharge = Math.min(1, driftCharge + dt * 0.6);
           if (Math.random() < 0.6) { puff(carX - 0.8, carRoot.position.z + 1.4); puff(carX + 0.8, carRoot.position.z + 1.4); }
@@ -231,8 +233,8 @@ export default function ExploreDrive() {
         }
       }
 
-      // Car X = lane target + drift slide (clamped to road width).
-      const laneTarget = LANES[c.lane];
+      // Car X = steer target + drift slide (clamped to road width).
+      const laneTarget = c.steer;
       slideV *= 0.9; slideX += slideV * dt;
       carX += ((laneTarget + slideX) - carX) * Math.min(1, dt * 9);
       carX = Math.max(-5.2, Math.min(5.2, carX));
@@ -337,17 +339,50 @@ export default function ExploreDrive() {
     const kd = (e: KeyboardEvent) => setKey(e, true);
     const ku = (e: KeyboardEvent) => setKey(e, false);
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+
+    // Drag-to-steer: slide a finger/mouse left-right across the canvas and the
+    // car follows continuously (mapped to road width). Far more controllable
+    // than discrete arrows.
+    const pointerSteer = (clientX: number) => {
+      if (!playing) return;
+      const r = canvas.getBoundingClientRect();
+      const frac = (clientX - r.left) / r.width;          // 0..1 across screen
+      ctrl.current.steer = Math.max(-5, Math.min(5, (frac - 0.5) * 11));
+    };
+    const pd = (e: PointerEvent) => { ctrl.current.dragging = true; pointerSteer(e.clientX); };
+    const pm = (e: PointerEvent) => { if (ctrl.current.dragging) pointerSteer(e.clientX); };
+    const pu = () => { ctrl.current.dragging = false; };
+    canvas.addEventListener('pointerdown', pd);
+    canvas.addEventListener('pointermove', pm);
+    window.addEventListener('pointerup', pu);
+
+    // Tilt-to-steer (mobile): device roll maps to steer target when enabled.
+    const onTilt = (e: DeviceOrientationEvent) => {
+      if (!tiltRef.current || !playing || e.gamma == null) return;
+      ctrl.current.steer = Math.max(-5, Math.min(5, (e.gamma / 35) * 5));
+    };
+    window.addEventListener('deviceorientation', onTilt);
+
     const onResize = () => engine.resize(); window.addEventListener('resize', onResize);
     setReady(true);
 
     return () => {
       window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      canvas.removeEventListener('pointerdown', pd); canvas.removeEventListener('pointermove', pm);
+      window.removeEventListener('pointerup', pu); window.removeEventListener('deviceorientation', onTilt);
       window.removeEventListener('resize', onResize); scene.dispose(); engine.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const press = (key: 'boost' | 'brake' | 'drift', on: boolean) => () => { ctrl.current[key] = on; };
+  const toggleTilt = async () => {
+    const next = !tilt;
+    // iOS requires a user-gesture permission request for motion sensors.
+    const DOE = (typeof DeviceOrientationEvent !== 'undefined' ? DeviceOrientationEvent : null) as unknown as { requestPermission?: () => Promise<string> } | null;
+    if (next && DOE?.requestPermission) { try { await DOE.requestPermission(); } catch { /* ignore */ } }
+    setTilt(next); tiltRef.current = next;
+  };
   const battColor = hud.battery < 25 ? 'var(--danger)' : hud.battery < 55 ? 'var(--warn)' : 'var(--accent)';
   const lightColor = hud.light === 'red' ? '#ff5c5c' : hud.light === 'yellow' ? '#ffcc44' : '#4ade80';
 
@@ -390,6 +425,12 @@ export default function ExploreDrive() {
       )}
 
       <a className="btn ghost" href={withBase('/build/')} style={{ position: 'absolute', right: 10, bottom: 86, padding: '5px 11px', fontSize: '0.8rem' }}>← Edit build</a>
+
+      {/* Steering help + tilt toggle */}
+      <div style={{ position: 'absolute', left: 10, bottom: 70, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span className="small muted" style={{ pointerEvents: 'none' }}>👆 Slide to steer</span>
+        <button onClick={toggleTilt} style={{ ...ctrlBtn, width: 'auto', height: 30, fontSize: '0.72rem', padding: '0 10px', background: tilt ? 'var(--accent)' : 'rgba(19,28,43,0.9)', color: tilt ? '#06140f' : 'var(--text)' }}>📱 Tilt {tilt ? 'On' : 'Off'}</button>
+      </div>
 
       {/* Single wrapping control bar so every button is always visible */}
       <div style={controlBar}>
