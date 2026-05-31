@@ -50,9 +50,11 @@ export default function ExploreDrive() {
   const [miles, setMiles] = useState(0);
   const [coins, setCoins] = useState(0);
   const [battery, setBattery] = useState(100);
+  const [driftPct, setDriftPct] = useState(0);
+  const [passed, setPassed] = useState(0);
   const [over, setOver] = useState(false);
 
-  const ctrl = useRef({ boost: false, brake: false, lane: 1, targetX: 0 });
+  const ctrl = useRef({ boost: false, brake: false, drift: false, lane: 1, targetX: 0 });
   const stepRef = useRef<(d: number) => void>(() => {});
   const restartRef = useRef<() => void>(() => {});
 
@@ -156,6 +158,13 @@ export default function ExploreDrive() {
     const carRoot = built.node.parent as BABYLON.TransformNode;
     const ug = built.underglow?.material as BABYLON.StandardMaterial | undefined;
 
+    // Drift tire-smoke puffs trailing the rear wheels.
+    const smokeMat = mk(new BABYLON.Color3(0.7, 0.7, 0.75), new BABYLON.Color3(0.25, 0.25, 0.3), true);
+    const smoke: BABYLON.Mesh[] = [];
+    for (let i = 0; i < 12; i++) { const p = BABYLON.MeshBuilder.CreateSphere('sm' + i, { diameter: 0.7, segments: 6 }, scene); p.material = smokeMat; p.setEnabled(false); smoke.push(p); }
+    let smokeIdx = 0;
+    const puff = (x: number, z: number) => { const p = smoke[smokeIdx % smoke.length]; smokeIdx++; p.setEnabled(true); p.position.set(x, 0.4, z); p.scaling.setAll(0.5 + Math.random() * 0.5); (p as any)._life = 0.5; };
+
     const applyDistrict = (d: typeof DISTRICTS[number]) => {
       scene.clearColor = new BABYLON.Color4(d.sky[0], d.sky[1], d.sky[2], 1);
       scene.fogColor = new BABYLON.Color3(d.sky[0], d.sky[1], d.sky[2]);
@@ -166,12 +175,13 @@ export default function ExploreDrive() {
     applyDistrict(DISTRICTS[0]);
 
     let distance = 0, curDist = -1, speed = 30, batt = 100, coinCount = 0, spin = 0, spawnTimer = 0, playing = true;
+    let driftYaw = 0, driftCharge = 0, boostBurst = 0, passed = 0;
 
     const reset = () => {
       clearEnts(); distance = 0; curDist = -1; speed = 30; batt = 100; coinCount = 0; spin = 0; spawnTimer = 0; playing = true;
-      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0;
+      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0; driftYaw = 0; driftCharge = 0; boostBurst = 0; passed = 0;
       ctrl.current.lane = 1; ctrl.current.targetX = 0; carRoot.position.x = 0;
-      setOver(false); setBattery(100); setCoins(0); setMiles(0);
+      setOver(false); setBattery(100); setCoins(0); setMiles(0); setDriftPct(0); setPassed(0);
     };
     restartRef.current = reset;
 
@@ -180,16 +190,33 @@ export default function ExploreDrive() {
       const c = ctrl.current;
 
       if (playing) {
-        const target = c.boost ? 70 : c.brake ? 14 : 42;
+        if (boostBurst > 0) boostBurst = Math.max(0, boostBurst - dt);
+        const target = (c.boost || boostBurst > 0) ? 74 : c.brake ? 14 : 42;
         speed += (target - speed) * Math.min(1, dt * 1.5);
         distance += speed * dt;
-        batt = Math.max(0, batt - dt * (c.boost ? 3.4 : 2.0));
+        batt = Math.max(0, batt - dt * ((c.boost || boostBurst > 0) ? 3.4 : 2.0));
         // Evolve curvature so the road winds.
         curveTimer -= dt;
         if (curveTimer <= 0) { curveTarget = (Math.random() - 0.5) * 2.2; curveTimer = 2.5 + Math.random() * 2.5; }
         curve += (curveTarget - curve) * Math.min(1, dt * 0.7);
         drift += (curveTarget * 6 - drift) * Math.min(1, dt * 0.5);
+
+        // Drifting: while held and moving, the car slides sideways (toward the
+        // current bend), kicks out a big yaw + smoke, and banks a boost charge.
+        if (c.drift && speed > 18) {
+          const slideDir = Math.sign(curve || (ctrl.current.lane - 1) || 1);
+          driftYaw += (slideDir * 0.6 - driftYaw) * Math.min(1, dt * 4);
+          driftCharge = Math.min(1, driftCharge + dt * 0.6);
+          if (Math.random() < 0.5) { puff(carRoot.position.x - 0.7, carRoot.position.z + 1.4); puff(carRoot.position.x + 0.7, carRoot.position.z + 1.4); }
+        } else {
+          driftYaw += (0 - driftYaw) * Math.min(1, dt * 5);
+          // Releasing a built-up drift unleashes a boost burst.
+          if (driftCharge > 0.25) { boostBurst = 0.4 + driftCharge * 1.2; haptic([10, 30, 10]); }
+          driftCharge = Math.max(0, driftCharge - dt * 1.5);
+        }
       }
+      // Fade smoke puffs.
+      for (const p of smoke) { if (!p.isEnabled()) continue; const life = ((p as any)._life -= dt); p.scaling.addInPlaceFromFloats(dt * 2, dt * 2, dt * 2); p.position.z += speed * dt; (p.material as BABYLON.StandardMaterial).alpha = Math.max(0, life * 1.6); if (life <= 0) p.setEnabled(false); }
 
       // Scroll + bend road segments.
       for (const s of segs) { s.position.z += speed * dt; if (s.position.z > SEG) s.position.z -= SEG * SEG_COUNT; s.position.x = bendOf(s.position.z); }
@@ -206,17 +233,20 @@ export default function ExploreDrive() {
       const laneX = LANES[c.lane];
       carRoot.position.x += (laneX - carRoot.position.x) * Math.min(1, dt * 8);
       if (spin > 0) { spin = Math.max(0, spin - dt); built.node.rotation.y = -Math.PI / 2 + (1 - spin / 0.7) * Math.PI * 2; }
-      else built.node.rotation.y = -Math.PI / 2 + (laneX - carRoot.position.x) * 0.05;
-      built.node.rotation.z = spin > 0 ? 0 : (carRoot.position.x - laneX) * 0.1;
+      else built.node.rotation.y = -Math.PI / 2 + (laneX - carRoot.position.x) * 0.05 + driftYaw;
+      built.node.rotation.z = spin > 0 ? 0 : (carRoot.position.x - laneX) * 0.1 - driftYaw * 0.15;
       built.node.scaling.setAll(0.62);
       for (const w of built.wheelMeshes) w.rotation.x += speed * dt * 0.5;
       if (ug) ug.alpha = 0.6 + Math.sin(performance.now() / 250) * 0.25;
 
-      // Advance entities + collisions.
+      // Advance entities + collisions. Traffic moves slower (forward) so you
+      // overtake it; static hazards/collectibles approach at full closing speed.
       for (const e of ents) {
-        e.z += speed * dt; e.mesh.position.z = e.z;
+        const closing = e.kind === 'car' ? speed - 24 : speed; // 24 m/s traffic
+        e.z += closing * dt; e.mesh.position.z = e.z;
         e.mesh.position.x = LANES[e.lane] + bendOf(e.z);
         if (e.kind === 'coin' || e.kind === 'charge') { e.mesh.rotation.y += dt * 3; e.mesh.position.y = Math.sin(performance.now() / 300 + e.lane) * 0.15; }
+        if (e.kind === 'car' && !e.hit && !(e as any)._passed && e.z > 3) { (e as any)._passed = true; passed += 1; coinCount += 1; }
         if (!e.hit && playing && e.z > -2 && e.z < 2 && Math.abs(e.mesh.position.x - carRoot.position.x) < 1.7) {
           e.hit = true;
           if (e.kind === 'coin') { coinCount += 1; batt = Math.min(100, batt + 1); haptic(6); e.mesh.dispose(); }
@@ -242,7 +272,7 @@ export default function ExploreDrive() {
 
       if (Math.floor(performance.now() / 150) % 2 === 0) {
         setSpeedMph(Math.round(speed * 2.237)); setMiles(Number((distance / 1609.34).toFixed(2)));
-        setBattery(Math.round(batt)); setCoins(coinCount);
+        setBattery(Math.round(batt)); setCoins(coinCount); setDriftPct(Math.round(driftCharge * 100)); setPassed(passed);
       }
     });
 
@@ -256,6 +286,7 @@ export default function ExploreDrive() {
       else if (k === 'arrowright' || k === 'd') { if (on) step(1); e.preventDefault(); }
       else if (k === 'arrowup' || k === 'w') { ctrl.current.boost = on; e.preventDefault(); }
       else if (k === 'arrowdown' || k === 's') { ctrl.current.brake = on; e.preventDefault(); }
+      else if (k === ' ' || k === 'shift') { ctrl.current.drift = on; e.preventDefault(); }
     };
     const kd = (e: KeyboardEvent) => setKey(e, true);
     const ku = (e: KeyboardEvent) => setKey(e, false);
@@ -270,7 +301,7 @@ export default function ExploreDrive() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const press = (key: 'boost' | 'brake', on: boolean) => () => { ctrl.current[key] = on; };
+  const press = (key: 'boost' | 'brake' | 'drift', on: boolean) => () => { ctrl.current[key] = on; };
   const battColor = battery < 25 ? 'var(--danger)' : battery < 55 ? 'var(--warn)' : 'var(--accent)';
 
   return (
@@ -286,6 +317,7 @@ export default function ExploreDrive() {
       <div style={{ position: 'absolute', top: 12, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', gap: 8, pointerEvents: 'none', flexWrap: 'wrap' }}>
         <div style={hudBox}><span className="small muted">{DISTRICTS.find((d) => d.name === district)?.emoji} District</span><div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{district}</div></div>
         <div style={hudBox}><span className="small muted">🪙 Coins</span><div style={{ fontWeight: 800, color: 'var(--warn)' }}>{coins}</div></div>
+        <div style={hudBox}><span className="small muted">🏁 Passed</span><div style={{ fontWeight: 800 }}>{passed}</div></div>
         <div style={{ ...hudBox, minWidth: 96 }}><span className="small muted">Battery</span><div style={{ height: 9, borderRadius: 6, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginTop: 4 }}><div style={{ width: `${battery}%`, height: '100%', background: battColor }} /></div></div>
         <div style={hudBox}><span className="small muted">Speed</span><div style={{ fontWeight: 800, color: 'var(--accent)' }}>{speedMph}</div></div>
       </div>
@@ -295,7 +327,7 @@ export default function ExploreDrive() {
           <div style={{ textAlign: 'center', padding: 20 }}>
             <div style={{ fontSize: '2.4rem' }}>🔋</div>
             <h3 style={{ margin: '6px 0' }}>Out of charge!</h3>
-            <p className="muted">You drove <strong style={{ color: 'var(--accent-2)' }}>{miles} mi</strong> and grabbed <strong style={{ color: 'var(--warn)' }}>{coins}</strong> coins.</p>
+            <p className="muted">You drove <strong style={{ color: 'var(--accent-2)' }}>{miles} mi</strong>, passed <strong>{passed}</strong> cars, and grabbed <strong style={{ color: 'var(--warn)' }}>{coins}</strong> coins.</p>
             <button className="btn primary" style={{ marginTop: 12 }} onClick={() => restartRef.current()}>↻ Drive again</button>
           </div>
         </div>
@@ -308,14 +340,21 @@ export default function ExploreDrive() {
           <button style={ctrlBtn} onClick={() => stepRef.current(-1)} aria-label="Move left">‹</button>
           <button style={ctrlBtn} onClick={() => stepRef.current(1)} aria-label="Move right">›</button>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button style={{ ...ctrlBtn, fontSize: '0.9rem' }} onPointerDown={press('brake', true)} onPointerUp={press('brake', false)} onPointerLeave={press('brake', false)} aria-label="Brake">BRAKE</button>
-          <button style={{ ...ctrlBtn, background: 'var(--accent)', color: '#06140f', fontSize: '0.9rem' }} onPointerDown={press('boost', true)} onPointerUp={press('boost', false)} onPointerLeave={press('boost', false)} aria-label="Boost">BOOST</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            style={{ ...ctrlBtn, fontSize: '0.82rem', position: 'relative', overflow: 'hidden', borderColor: driftPct > 25 ? 'var(--accent)' : 'var(--border)' }}
+            onPointerDown={press('drift', true)} onPointerUp={press('drift', false)} onPointerLeave={press('drift', false)} aria-label="Drift"
+          >
+            DRIFT
+            <span style={{ position: 'absolute', left: 0, bottom: 0, height: 4, width: `${driftPct}%`, background: 'var(--accent)' }} />
+          </button>
+          <button style={{ ...ctrlBtn, fontSize: '0.82rem' }} onPointerDown={press('brake', true)} onPointerUp={press('brake', false)} onPointerLeave={press('brake', false)} aria-label="Brake">BRAKE</button>
+          <button style={{ ...ctrlBtn, background: 'var(--accent)', color: '#06140f', fontSize: '0.82rem' }} onPointerDown={press('boost', true)} onPointerUp={press('boost', false)} onPointerLeave={press('boost', false)} aria-label="Boost">BOOST</button>
         </div>
       </div>
 
       <div style={{ position: 'absolute', left: 12, bottom: 92, pointerEvents: 'none' }} className="small muted">
-        Winding road — dodge 🚧 obstacles &amp; traffic, grab 🪙 coins + ⚡ charge to keep going!
+        Winding road — dodge 🚧 obstacles, pass 🚗 traffic, hold DRIFT around corners for a boost!
       </div>
     </div>
   );
