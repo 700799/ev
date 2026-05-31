@@ -73,12 +73,11 @@ export default function ScienceLab() {
           can adjust and watch the scene at the same time. */}
       <div className="canvas-frame" style={{ minHeight: 240, position: 'relative' }}>
         <canvas ref={canvasRef} style={{ width: '100%', height: '240px', display: 'block', touchAction: 'none' }} />
-        {/* Compact live readouts overlaid on the scene corner. */}
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>
+        {/* Thin readout strip along the bottom so the animation stays visible. */}
+        <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', pointerEvents: 'none' }}>
           {([readout.a, readout.b, readout.c] as const).filter(Boolean).map((r, i) => (
-            <div key={i} style={{ background: 'rgba(10,14,20,0.78)', border: '1px solid var(--border)', borderRadius: 9, padding: '4px 9px' }}>
-              <span className="small muted">{r.split('|')[0]}: </span>
-              <strong>{r.split('|')[1]}</strong>
+            <div key={i} style={{ background: 'rgba(10,14,20,0.8)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 8px', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+              <span className="muted">{r.split('|')[0]}</span> <strong>{r.split('|')[1]}</strong>
             </div>
           ))}
         </div>
