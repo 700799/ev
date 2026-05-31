@@ -1,15 +1,14 @@
 'use client';
 
-import { withBase } from '@/lib/site';
 import { useGame } from './GameProvider';
 
-/** Always-visible compact level/XP chip (bottom-left). Links to the badge shelf. */
+/** Always-visible compact level/XP progress chip (does not navigate). */
 export default function GameStatus() {
   const { level, xp, earned, badges } = useGame();
   const pct = level.isMax ? 100 : Math.round((level.current / level.span) * 100);
 
   return (
-    <a className="game-chip" href={withBase('/#badges')} title="Your EV learning progress">
+    <div className="game-chip" title="Your EV learning progress" aria-label={`Level ${level.level}, ${xp} XP`}>
       <span className="game-chip-trophy">🏆</span>
       <span className="game-chip-body">
         <span className="game-chip-top">
@@ -20,6 +19,6 @@ export default function GameStatus() {
           <span style={{ width: `${pct}%` }} />
         </span>
       </span>
-    </a>
+    </div>
   );
 }

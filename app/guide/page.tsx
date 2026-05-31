@@ -9,7 +9,6 @@ import ArticleList from '@/components/ArticleList';
 import BatteryFacts from '@/components/BatteryFacts';
 import BatteryQuiz from '@/components/BatteryQuiz';
 import ModelYearCompare from '@/components/ModelYearCompare';
-import BadgeShelf from '@/components/BadgeShelf';
 import ReadTracker from '@/components/ReadTracker';
 import GuideNav from '@/components/GuideNav';
 import Carousel from '@/components/Carousel';
@@ -123,16 +122,6 @@ export default function Home() {
         intro="Run the numbers: EV-vs-gas savings, the cost of a single charge or a whole trip, and how fast rooftop solar pays for itself."
       >
         <Calculators />
-      </Section>
-
-      {/* ---------------- BADGES / GAMIFICATION ---------------- */}
-      <Section
-        id="badges"
-        kicker="Level up"
-        title="Earn learning badges as you explore"
-        intro="Read sections, use the tools, customize the 3D car, and pass the quiz to unlock badges, rack up XP, and level up from Curious Driver to EV Guru. Your progress saves in this browser."
-      >
-        <BadgeShelf />
       </Section>
 
       {/* ---------------- 10 BATTERY FACTS ---------------- */}

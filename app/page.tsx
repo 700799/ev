@@ -18,7 +18,6 @@ const ROWS: Row[] = [
       { href: '/play/', emoji: '🏎️', label: 'EV Dodge', sub: 'Dodge, drift & charge', accent: true },
       { href: '/explore/', emoji: '🌆', label: 'Drive & Explore', sub: 'Winding city, your build' },
       { href: '/build/', emoji: '🛠️', label: 'Build Your EV', sub: '3D + budget & specs' },
-      { href: '/guide/#badges', emoji: '🏆', label: 'Badges', sub: 'Level up as you learn' },
     ],
   },
   {
@@ -75,10 +74,11 @@ export default function Launcher() {
   return (
     <main className="launcher launcher-rows">
       <div className="launcher-head">
-        <div className="launcher-brand">
-          <span className="brand-logo" aria-hidden>⚡</span> {SITE.name}
+        <span className="brand-logo" aria-hidden>⚡</span>
+        <div className="launcher-headtext">
+          <span className="launcher-brand">{SITE.name}</span>
+          <span className="launcher-tag">Play, plan, learn &amp; keep up with EV news.</span>
         </div>
-        <p className="launcher-tag">EV ownership — play, plan, learn &amp; keep up with the news.</p>
       </div>
 
       {ROWS.map((row) => (

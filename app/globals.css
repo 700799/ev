@@ -612,9 +612,10 @@ ol.steps li p {
    way of bottom-of-screen game controls. */
 .game-chip {
   position: fixed;
-  top: 64px;
-  right: 12px;
-  z-index: 40;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  pointer-events: none; /* display only — never blocks the menu or content */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -626,9 +627,8 @@ ol.steps li p {
   box-shadow: var(--shadow);
   text-decoration: none;
   color: var(--text);
-  opacity: 0.9;
+  opacity: 0.88;
 }
-.game-chip:hover { border-color: var(--accent); text-decoration: none; opacity: 1; }
 .game-chip-trophy { font-size: 1rem; }
 .game-chip-body { display: grid; gap: 3px; min-width: 92px; }
 .game-chip-top { font-size: 0.72rem; font-weight: 700; }
@@ -645,7 +645,7 @@ ol.steps li p {
   transition: width 0.4s ease;
 }
 @media (max-width: 560px) {
-  .game-chip { top: 58px; padding: 4px 10px 4px 6px; }
+  .game-chip { padding: 4px 10px 4px 6px; }
   .game-chip-body { min-width: 76px; }
 }
 
@@ -963,47 +963,83 @@ ol.steps li p {
 }
 .opt-chip.on .opt-cost { color: var(--accent); }
 
-/* ---------- Launcher: grouped horizontal rows ---------- */
-.launcher-rows { height: auto; min-height: 100svh; }
-.launch-row { margin-bottom: 18px; }
+/* ---------- Launcher: grouped horizontal rows, fit to one screen ---------- */
+.launcher-rows {
+  height: 100svh;
+  min-height: 0;
+  gap: 4px;
+}
+.launcher-rows .launcher-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px 6px;
+  flex: 0 0 auto;
+}
+.launcher-rows .launcher-headtext { display: flex; flex-direction: column; line-height: 1.15; }
+.launcher-rows .launcher-brand { font-weight: 800; font-size: 1.05rem; }
+.launcher-rows .launcher-tag { font-size: 0.74rem; margin: 0; }
+.launcher-rows .launcher-foot { display: none; }
+.launch-row {
+  margin-bottom: 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .launch-row-title {
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: var(--accent);
   font-weight: 800;
-  margin: 0 0 8px 2px;
+  margin: 0 0 3px 2px;
+  flex: 0 0 auto;
 }
 .launch-rail {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-x: auto;
-  padding-bottom: 8px;
+  overflow-y: hidden;
+  padding-bottom: 2px;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
-.launch-rail::-webkit-scrollbar { height: 7px; }
-.launch-rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.launch-rail::-webkit-scrollbar { display: none; }
 .launch-rail .tile {
   flex: 0 0 auto;
-  width: 150px;
+  width: 116px;
+  height: 100%;
   scroll-snap-align: start;
-  aspect-ratio: 1 / 0.86;
+  gap: 2px;
+  padding: 6px;
 }
+.launch-rail .tile .tile-emoji { font-size: 1.5rem; }
+.launch-rail .tile .tile-label { font-size: 0.78rem; }
+.launch-rail .tile .tile-sub { font-size: 0.62rem; }
 .launch-rail .tile.tile-accent {
-  width: 220px;
+  width: 168px;
   flex-direction: column;
   background: var(--accent);
   border-color: var(--accent);
   color: #06140f;
   align-items: flex-start;
   justify-content: center;
-  padding: 14px 16px;
+  padding: 8px 12px;
 }
-.launch-rail .tile.tile-accent .tile-label { font-size: 1.05rem; }
+.launch-rail .tile.tile-accent .tile-label { font-size: 0.95rem; }
 .launch-rail .tile.tile-accent .tile-sub { color: rgba(6,20,15,0.72); }
+/* Slightly roomier on big screens where vertical space isn't tight. */
+@media (min-width: 700px) {
+  .launcher-rows { height: auto; min-height: 100svh; }
+  .launch-row { flex: 0 0 auto; }
+  .launch-rail { flex: 0 0 auto; }
+  .launch-rail .tile { width: 150px; height: 120px; }
+  .launcher-rows .launcher-foot { display: block; }
+}
 
 /* ---------- Guide section nav (sticky, multi-row, highlights active) ---------- */
 .guidenav {
