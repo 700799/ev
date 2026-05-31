@@ -34,7 +34,7 @@ const ROWS: Row[] = [
     tiles: [
       { href: '/guide/#battery', emoji: '🔋', label: 'Battery 101', sub: '10 things + quiz' },
       { href: '/guide/#power', emoji: '⚡', label: 'Drains & Charges', sub: 'What moves the needle' },
-      { href: '/guide/#science-lab', emoji: '🔬', label: 'Science Lab', sub: '4 physics animations' },
+      { href: '/guide/#science-lab', emoji: '🔬', label: 'Science Lab', sub: '6 physics animations' },
       { href: '/guide/#driving', emoji: '🚗', label: 'How to Drive', sub: 'One-pedal & more' },
       { href: '/tutorials/', emoji: '🎓', label: 'Lessons', sub: 'Step-by-step tutorials' },
     ],
@@ -45,6 +45,8 @@ const ROWS: Row[] = [
       { href: '/guide/#compare-evs', emoji: '⚖️', label: 'Compare EVs', sub: 'Models & model years' },
       { href: '/guide/#compare-types', emoji: '🆚', label: 'EV vs Gas', sub: 'vs hybrid & gas' },
       { href: '/guide/#deals', emoji: '💰', label: 'Best Deals', sub: 'Incentives & timing' },
+      { href: '/guide/#tco', emoji: '📊', label: 'Cost of Ownership', sub: 'EV vs gas, lifetime' },
+      { href: '/guide/#maintenance', emoji: '🧰', label: 'Maintenance', sub: 'Upkeep & accessories' },
       { href: '/guide/#new-models', emoji: '🚙', label: 'New Models', sub: 'Trucks, SUVs, semis' },
     ],
   },

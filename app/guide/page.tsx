@@ -30,6 +30,11 @@ import {
   whatCanGoWrongAdvanced,
   biggestComplaints,
   dealTips,
+  tcoRows,
+  tcoTakeaways,
+  maintenanceRows,
+  noLongerNeeded,
+  accessoryCategories,
   nightmareScenarios,
   chargingTypes,
   solarPoints,
@@ -374,6 +379,91 @@ export default function Home() {
         intro="Incentives, timing, and tactics that knock thousands off the price."
       >
         <FactGrid facts={dealTips} carousel />
+      </Section>
+
+      {/* ---------------- TOTAL COST OF OWNERSHIP ---------------- */}
+      <Section
+        id="tco"
+        kicker="Money"
+        title="Total cost of ownership: EV vs gas"
+        intro="The sticker price is only part of the story. Here's how the lifetime costs really stack up, line by line."
+      >
+        <div className="table-wrap" style={{ marginBottom: 18 }}>
+          <table>
+            <thead>
+              <tr><th>Cost item</th><th>Electric (EV)</th><th>Gas</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              {tcoRows.map((r) => (
+                <tr key={r.item}>
+                  <td><strong>{r.item}</strong></td>
+                  <td>{r.ev}</td>
+                  <td>{r.gas}</td>
+                  <td className="muted small">{r.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <FactGrid facts={tcoTakeaways} carousel />
+        <div className="note" style={{ marginTop: 16 }}>
+          Run your own numbers with the <a href={withBase('/calculators/')}>savings &amp; charge-cost calculators</a>.
+        </div>
+      </Section>
+
+      {/* ---------------- MAINTENANCE ---------------- */}
+      <Section
+        id="maintenance"
+        kicker="Ownership"
+        title="Common maintenance & upgrades"
+        intro="EVs need far less upkeep than gas cars — here's the short list of what does need doing, what it costs, and why."
+      >
+        <div className="table-wrap" style={{ marginBottom: 18 }}>
+          <table>
+            <thead>
+              <tr><th>Task</th><th>Interval</th><th>Typical cost</th><th>Why</th></tr>
+            </thead>
+            <tbody>
+              {maintenanceRows.map((m) => (
+                <tr key={m.task}>
+                  <td><strong>{m.task}</strong></td>
+                  <td>{m.interval}</td>
+                  <td>{m.cost}</td>
+                  <td className="muted small">{m.why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <h3 style={{ margin: '6px 0 10px' }}>What you no longer pay for</h3>
+        <ul className="checks">
+          {noLongerNeeded.map((t) => (<li key={t}>{t}</li>))}
+        </ul>
+      </Section>
+
+      {/* ---------------- ACCESSORIES ---------------- */}
+      <Section
+        id="accessories"
+        kicker="Ownership"
+        title="Accessories & upgrades worth considering"
+        intro="The add-ons EV owners actually buy, grouped by what they do. Build and price a virtual version in the 3D builder, too."
+      >
+        <div className="grid cols-3">
+          {accessoryCategories.map((cat) => (
+            <div className="card" key={cat.heading}>
+              <h3>{cat.emoji} {cat.heading}</h3>
+              <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                {cat.items.map((it) => (
+                  <li key={it} className="small" style={{ marginBottom: 6, color: 'var(--muted)' }}>{it}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="note" style={{ marginTop: 16 }}>
+          Want to see add-ons on a car? <a href={withBase('/build/')}>Build your EV in 3D</a> and watch how each accessory
+          changes price, weight, drag, and range.
+        </div>
       </Section>
 
       {/* ---------------- CHARGING TYPES ---------------- */}
