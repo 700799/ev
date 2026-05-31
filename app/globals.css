@@ -1004,3 +1004,69 @@ ol.steps li p {
 }
 .launch-rail .tile.tile-accent .tile-label { font-size: 1.05rem; }
 .launch-rail .tile.tile-accent .tile-sub { color: rgba(6,20,15,0.72); }
+
+/* ---------- Guide section nav (sticky, multi-row, highlights active) ---------- */
+.guidenav {
+  position: sticky;
+  top: 61px; /* under the top bar */
+  z-index: 30;
+  background: rgba(10, 14, 20, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.guidenav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 14px;
+}
+.guidenav-group {
+  flex: 0 0 auto;
+  width: 74px;
+  font-size: 0.58rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: right;
+}
+.guidenav-rail {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 1px 0;
+}
+.guidenav-rail::-webkit-scrollbar { display: none; }
+.guidenav-chip {
+  flex: 0 0 auto;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.guidenav-chip:hover { color: var(--text); border-color: var(--accent-2); text-decoration: none; }
+.guidenav-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06140f;
+}
+@media (max-width: 640px) {
+  .guidenav-group { width: 0; overflow: hidden; padding: 0; }
+  .guidenav-row { padding: 0 10px; }
+}

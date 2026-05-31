@@ -11,6 +11,7 @@ import BatteryQuiz from '@/components/BatteryQuiz';
 import ModelYearCompare from '@/components/ModelYearCompare';
 import BadgeShelf from '@/components/BadgeShelf';
 import ReadTracker from '@/components/ReadTracker';
+import GuideNav from '@/components/GuideNav';
 import Carousel from '@/components/Carousel';
 import PowerScenarios from '@/components/PowerScenarios';
 import WhatGoesWrong from '@/components/WhatGoesWrong';
@@ -91,6 +92,8 @@ export default function Home() {
           <HeroSceneClient />
         </div>
       </div>
+
+      <GuideNav />
 
       {/* ---------------- STATIONS (TOP TOOL) ---------------- */}
       <Section
