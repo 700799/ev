@@ -3,6 +3,24 @@
 import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useGame } from '../GameProvider';
+import { buildCar, createCarMaterials, type CarConfig } from '@/lib/carBuilder';
+import type { BodyType, WheelStyle } from '@/data/configSpecs';
+
+// Load the car saved by the configurator so the game uses YOUR build.
+function loadSavedCar(): CarConfig {
+  const fallback: CarConfig = { body: 'sedan', paint: '#5aa392', wheel: 'sport', accessories: [] };
+  try {
+    const raw = localStorage.getItem('ev-build-v1');
+    if (!raw) return fallback;
+    const o = JSON.parse(raw);
+    return {
+      body: (o.body as BodyType) || 'sedan',
+      paint: o.paint || '#5aa392',
+      wheel: (o.wheel as WheelStyle) || 'sport',
+      accessories: Array.isArray(o.accessories) ? o.accessories : [],
+    };
+  } catch { return fallback; }
+}
 
 type Phase = 'idle' | 'playing' | 'shop' | 'over';
 type Kind =
@@ -177,26 +195,19 @@ export default function DriveGame() {
     applyThemeRef.current = applyTheme;
     applyTheme(THEMES.find((t) => t.id === themeId) || THEMES[0]);
 
-    // --- Player car ---
+    // --- Player car: render the exact car built in the configurator ---
     const car = new BABYLON.TransformNode('car', scene);
-    const carMat = new BABYLON.PBRMaterial('carMat', scene);
-    carMat.albedoColor = new BABYLON.Color3(0.12, 0.5, 0.42); carMat.metallic = 0.6; carMat.roughness = 0.3;
-    const glassMat = new BABYLON.PBRMaterial('cg', scene);
+    const glassMat = new BABYLON.PBRMaterial('cg', scene); // also reused by obstacle factories
     glassMat.albedoColor = new BABYLON.Color3(0.04, 0.09, 0.14); glassMat.alpha = 0.6; glassMat.roughness = 0.05;
-    const cbody = BABYLON.MeshBuilder.CreateBox('cb', { width: 2, height: 0.7, depth: 3.6 }, scene);
-    cbody.position.y = 0.7; cbody.material = carMat; cbody.parent = car;
-    const ccab = BABYLON.MeshBuilder.CreateBox('cc', { width: 1.7, height: 0.6, depth: 1.9 }, scene);
-    ccab.position.set(0, 1.25, -0.2); ccab.material = glassMat; ccab.parent = car;
     const tireMat = new BABYLON.StandardMaterial('t', scene); tireMat.diffuseColor = new BABYLON.Color3(0.02, 0.02, 0.03);
-    for (const [x, z] of [[1, 1.1], [-1, 1.1], [1, -1.1], [-1, -1.1]] as [number, number][]) {
-      const w = BABYLON.MeshBuilder.CreateCylinder('w', { diameter: 0.7, height: 0.3, tessellation: 18 }, scene);
-      w.rotation.z = Math.PI / 2; w.position.set(x, 0.35, z); w.material = tireMat; w.parent = car;
-    }
-    const hl = new BABYLON.StandardMaterial('hl', scene); hl.emissiveColor = new BABYLON.Color3(0.9, 0.9, 0.7);
-    for (const x of [0.6, -0.6]) {
-      const beam = BABYLON.MeshBuilder.CreateBox('beam', { width: 0.25, height: 0.18, depth: 0.2 }, scene);
-      beam.position.set(x, 0.6, -1.85); beam.material = hl; beam.parent = car;
-    }
+    const carMats = createCarMaterials(scene);
+    const playerCfg = loadSavedCar();
+    const builtCar = buildCar(scene, carMats, playerCfg);
+    // The configurator car points +X; rotate to face down the track (-Z) and
+    // scale it to fit the three lanes.
+    builtCar.node.rotation.y = -Math.PI / 2;
+    builtCar.node.scaling.setAll(0.62);
+    builtCar.node.parent = car;
     const flameMat = new BABYLON.StandardMaterial('flame', scene);
     flameMat.emissiveColor = new BABYLON.Color3(0.3, 0.7, 1); flameMat.disableLighting = true;
     const flame = BABYLON.MeshBuilder.CreateCylinder('fl', { diameterTop: 0, diameterBottom: 0.7, height: 2, tessellation: 12 }, scene);
