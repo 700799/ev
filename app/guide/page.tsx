@@ -414,7 +414,7 @@ export default function Home() {
         id="configurator"
         kicker="Play · build your EV"
         title="Design your dream EV in 3D"
-        intro="Pick a body, paint, and wheel style, then tack on up to 15 accessories — roof racks, light bars, spoilers, underglow and more. Drag to spin it around your virtual garage."
+        intro="Pick a body, paint, and wheel style, then tack on up to 15 accessories. Watch the live budget and see how each add-on's weight and aerodynamic drag changes your range, 0–60, and cornering grip. Drag to spin it around your garage."
       >
         <ConfiguratorClient />
       </Section>

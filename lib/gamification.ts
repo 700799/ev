@@ -34,6 +34,7 @@ export const BADGES: Badge[] = [
   { id: 'designer', name: 'Custom Builder', icon: '🛠️', desc: 'Build an EV in the 3D configurator.', xp: 60, check: (e) => e.has('feature:configurator') },
   { id: 'test-driver', name: 'Test Driver', icon: '🏎️', desc: 'Play the EV Dodge mini-game.', xp: 50, check: (e) => e.has('feature:drivegame') },
   { id: 'road-warrior', name: 'Road Warrior', icon: '🏆', desc: 'Score 500+ in EV Dodge.', xp: 120, check: (e) => e.has('drive:500') },
+  { id: 'turbo-charged', name: 'Turbo Charged', icon: '🚀', desc: 'Grab a turbo boost in EV Dodge.', xp: 50, check: (e) => e.has('drive:turbo') },
   { id: 'beyond-beginner', name: 'Beyond Beginner', icon: '🎓', desc: 'Switch the battery facts to Advanced.', xp: 60, check: (e) => e.has('facts:advanced') },
   { id: 'quiz-whiz', name: 'Quiz Whiz', icon: '🧠', desc: 'Pass the advanced battery quiz.', xp: 100, check: (e) => e.has('quiz:battery:pass') },
   { id: 'year-analyst', name: 'Year Analyst', icon: '📅', desc: 'Compare EV model years.', xp: 60, check: (e) => e.has('feature:modelyears') },
