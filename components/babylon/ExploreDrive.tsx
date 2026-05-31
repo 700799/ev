@@ -191,7 +191,7 @@ export default function ExploreDrive() {
     const reset = () => {
       clearAll(); distance = 0; curDist = -1; speed = 30; batt = 100; prevBatt = 100; coins = 0; slideX = 0; slideV = 0; carX = 0;
       spawnTimer = 0; lightTimer = 5; playing = true; driftCharge = 0; boostBurst = 0; nearLight = null; truckActive = false; truck.setEnabled(false);
-      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0; ctrl.current.lane = 1;
+      curve = 0; curveTarget = 0; curveTimer = 0; drift = 0; ctrl.current.steer = 0;
       setOver(false);
     };
     restartRef.current = reset;
