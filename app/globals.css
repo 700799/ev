@@ -963,47 +963,46 @@ ol.steps li p {
 }
 .opt-chip.on .opt-cost { color: var(--accent); }
 
-/* ---------- Launcher: grouped horizontal rows, fit to one screen ---------- */
+/* ---------- Launcher: grouped horizontal rows of iOS-style rounded tiles ---------- */
+/* The page scrolls vertically; each row of app tiles scrolls horizontally.
+   Tiles are proper rounded squares (like iOS app icons) so labels stay readable. */
 .launcher-rows {
-  height: 100svh;
-  min-height: 0;
-  gap: 4px;
+  height: auto;
+  min-height: 100svh;
+  gap: 0;
 }
 .launcher-rows .launcher-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 4px 6px;
+  gap: 12px;
+  padding: 4px 4px 16px;
   flex: 0 0 auto;
 }
-.launcher-rows .launcher-headtext { display: flex; flex-direction: column; line-height: 1.15; }
-.launcher-rows .launcher-brand { font-weight: 800; font-size: 1.05rem; }
-.launcher-rows .launcher-tag { font-size: 0.74rem; margin: 0; }
-.launcher-rows .launcher-foot { display: none; }
+.launcher-rows .launcher-headtext { display: flex; flex-direction: column; line-height: 1.2; }
+.launcher-rows .launcher-brand { font-weight: 800; font-size: 1.25rem; }
+.launcher-rows .launcher-tag { font-size: 0.86rem; margin: 2px 0 0; }
 .launch-row {
-  margin-bottom: 0;
-  flex: 1 1 0;
-  min-height: 0;
+  margin-bottom: 22px;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
 }
 .launch-row-title {
-  font-size: 0.66rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--accent);
   font-weight: 800;
-  margin: 0 0 3px 2px;
+  margin: 0 0 10px 2px;
   flex: 0 0 auto;
 }
 .launch-rail {
   display: flex;
-  gap: 8px;
-  flex: 1 1 0;
-  min-height: 0;
+  gap: 12px;
+  flex: 0 0 auto;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 2px;
+  padding: 2px 2px 6px;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1011,34 +1010,36 @@ ol.steps li p {
 .launch-rail::-webkit-scrollbar { display: none; }
 .launch-rail .tile {
   flex: 0 0 auto;
-  width: 116px;
-  height: 100%;
+  width: 124px;
+  height: 124px;
   scroll-snap-align: start;
-  gap: 2px;
-  padding: 6px;
+  gap: 5px;
+  padding: 12px 8px;
+  border-radius: 22px;
 }
-.launch-rail .tile .tile-emoji { font-size: 1.5rem; }
-.launch-rail .tile .tile-label { font-size: 0.78rem; }
-.launch-rail .tile .tile-sub { font-size: 0.62rem; }
+.launch-rail .tile .tile-emoji { font-size: 2rem; }
+.launch-rail .tile .tile-label { font-size: 0.9rem; }
+.launch-rail .tile .tile-sub { font-size: 0.72rem; }
 .launch-rail .tile.tile-accent {
-  width: 168px;
+  width: 124px;
+  height: 124px;
   flex-direction: column;
   background: var(--accent);
   border-color: var(--accent);
   color: #06140f;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 8px 12px;
+  text-align: center;
+  padding: 12px 10px;
 }
+.launch-rail .tile.tile-accent .tile-emoji { font-size: 2.3rem; }
 .launch-rail .tile.tile-accent .tile-label { font-size: 0.95rem; }
 .launch-rail .tile.tile-accent .tile-sub { color: rgba(6,20,15,0.72); }
-/* Slightly roomier on big screens where vertical space isn't tight. */
+/* Roomier tiles on larger screens. */
 @media (min-width: 700px) {
-  .launcher-rows { height: auto; min-height: 100svh; }
-  .launch-row { flex: 0 0 auto; }
-  .launch-rail { flex: 0 0 auto; }
-  .launch-rail .tile { width: 150px; height: 120px; }
-  .launcher-rows .launcher-foot { display: block; }
+  .launch-rail .tile,
+  .launch-rail .tile.tile-accent { width: 150px; height: 144px; }
+  .launch-rail .tile .tile-emoji { font-size: 2.3rem; }
 }
 
 /* ---------- Guide section nav (sticky, multi-row, highlights active) ---------- */
